@@ -978,7 +978,50 @@ arista:{name:"Arista EOS",hex:"#FF8A65",dev:"sw1 · DCS-7050SX3",prompts:{oper:"
   does:"Applies the whole staged session at once.",syn:"commit  ·  commit timer 5",
   use:"'commit timer 5' auto-reverts in five minutes unless you confirm — use it whenever the change could cut your own management path.",
   rel:["configure session fix-uplink","rollback"]},
- {k:"bash",cat:"trouble",m:[/^bash$/],mode:"oper",
+ {k:"show module",cat:"verify",m:[/^sh(ow)? module$/],mode:"oper",need:"A modular chassis — 7300/7500 series. Fixed switches have no modules to list.",
+  out:"Module Ports Card Type                      Model          Serial No.\n1      3     Supervisor 7300X SSD           DCS-7300-SUP-D JAS13340024\n3      128   32 port 40GbE QSFP+ LC         7300X-32Q-LC   JPE13440416\nFabric1 0    7304X Fabric Module            7304X-FM       JAS13320077",
+  does:"Lists every supervisor, fabric and linecard module with model, serial, hardware version and status.",
+  syn:"show module [supervisor <n> | linecard <n> | fabric <n> | all]",
+  use:"Inventory before an RMA or upgrade, and the fastest way to spot a module sitting in a failed state. Mixing first-generation and E-Series fabric modules forces the chassis into the slower mode — this is where you'd see it.",
+  rel:["show version"]},
+ {k:"alias srie show running-config interface ethernet 1-5",cat:"config",m:[/^alias \S+ .+$/],mode:"conf",
+  ans:"alias srie show running-config interface ethernet 1-5",
+  need:"An alias name with no spaces. Use %1, %2… for parameters you'll pass in.",
+  out:"sw1(config)#   (now typing 'srie' runs the full command)",
+  does:"Creates a shortcut that runs a longer command, available in every mode and session.",
+  syn:"alias <name> <command>  ·  alias ss show interfaces ethernet %1 status",
+  use:"For the command you type forty times a day. With %1 it takes an argument: 'ss 4/1-4/5'. Note an alias with the same name as a real command overrides it — pick names carefully.",
+  rel:["show running-config"]},
+ {k:"configure checkpoint save pre-change",cat:"save",m:[/^configure checkpoint save( \S+)?$/],mode:"oper",
+  ans:"configure checkpoint save pre-change",
+  need:"A checkpoint name — omit it and EOS auto-names it date-time-hash.",
+  out:"sw1#   (restore later with: configure checkpoint restore pre-change)",
+  does:"Snapshots the running config to a named checkpoint file you can restore later.",
+  syn:"configure checkpoint save [name]  ·  configure checkpoint restore <name>  ·  dir checkpoint:",
+  use:"Take one before any risky change. This is the rollback IOS never gave you — closer to Junos's model, without leaving EOS.",
+  rel:["show running-config","write"]},
+ {k:"schedule backup interval 60 max-log-files 24 command show running-config",cat:"config",
+  m:[/^schedule \S+ .*command .+$/],mode:"conf",
+  ans:"schedule backup interval 60 max-log-files 24 command show running-config",
+  need:"A schedule name, an interval in minutes (2–1440), and the command to run.",
+  out:"sw1(config)#   (output lands in flash:/schedule/backup/)",
+  does:"Runs a CLI command automatically on a repeating schedule and logs the output.",
+  syn:"schedule <name> [at hh:mm:ss] interval <mins> [timeout <mins>] [max-log-files <n>] command <cmd>",
+  use:"Automatic config backups, or periodic 'show tech-support' captures ahead of a maintenance window. Check it with 'show schedule summary'.",
+  rel:["show schedule summary","configure checkpoint save pre-change"]},
+ {k:"dir flash:",cat:"verify",m:[/^dir( flash:)?$/],mode:"oper",
+  out:"Directory of flash:/\n -rwx 293409892  Oct 23 08:55  EOS-4.30.4M.swi\n -rwx      5970  Oct 23 13:53  startup-config\n drwx      4096  Sep  6 14:50  schedule",
+  does:"Lists files on the switch filesystem.",
+  syn:"dir [flash: | checkpoint: | usb1:]  ·  dir /all",
+  use:"Check free space before copying a new EOS image — the copy writes to a temp file first, so you need room for both.",
+  rel:["show version"]},
+ {k:"show history",cat:"verify",m:[/^sh(ow)? history$/],mode:"oper",
+  out:"  show interfaces status\n  configure session fix-uplink\n  show session-config diffs\n  commit",
+  does:"Shows the last 20 commands typed in this session.",
+  syn:"show history",
+  use:"Reconstructing what you (or the last engineer) actually did. Ctrl-P / ↑ walks the same buffer.",
+  rel:["show running-config"]},
+ {k:"bash",cat:"trouble",m:[/^bash$/],mode:"oper",need:"Available in Privileged EXEC and config modes — not plain EXEC. Type logout, exit, or Ctrl-D to return.",
   out:"[admin@sw1 ~]$  (type 'exit' to return to the CLI)",
   does:"Drops to the underlying Linux shell.",syn:"bash  ·  bash <command>",
   use:"EOS runs on unmodified Linux, so tcpdump, python and normal file tools are right there. This is Arista's core architectural difference.",
@@ -1116,6 +1159,47 @@ panos:{name:"Palo Alto PAN-OS",hex:"#7BD88F",dev:"PA · PA-3220",prompts:{oper:"
   does:"Validates and activates the candidate configuration.",syn:"commit  ·  commit force  ·  commit partial",
   use:"No behaviour change after your edits? You didn't commit. Read the warnings — shadowed rules and broken references are reported here before they bite.",
   rel:["show jobs all","configure"]},
+ {k:"show routing route",cat:"verify",m:[/^show routing route$/],mode:"oper",
+  out:"VIRTUAL ROUTER: default\nflags: A:active, ?:loose, C:connect, S:static, ~:internal, O:ospf, B:bgp\n\ndestination      nexthop        metric flags  age  interface\n0.0.0.0/0        203.0.113.1    10     A S         ethernet1/1\n10.1.1.0/24      10.1.1.1       0      A C         ethernet1/2",
+  does:"The firewall's routing table, per virtual router, with flags showing each route's source.",
+  syn:"show routing route  ·  show routing route type static | ospf | bgp",
+  use:"The firewall routes too — plenty of 'blocked traffic' turns out to be a missing return route. Read the flags: A means active.",
+  rel:["show routing fib virtual-router default | match 10.1.0.0/16","show interface all"]},
+ {k:"show routing fib virtual-router default | match 10.1.0.0/16",cat:"trouble",
+  m:[/^show routing fib virtual-router \S+ \| match \S+$/],mode:"oper",
+  ans:"show routing fib virtual-router default | match 10.1.0.0/16",
+  need:"The virtual-router name and the prefix you're chasing.",
+  out:"id  destination     nexthop      flags interface\n12  10.1.0.0/16     10.0.0.2     ug    ethernet1/3",
+  does:"Searches the forwarding table for one destination instead of printing everything.",
+  syn:"show routing fib virtual-router <name> | match <x.x.x.x/Y>",
+  use:"On a box with a full table, this is the only readable way to ask 'where would this actually go?'. The FIB is what forwards; the RIB is what was learned.",
+  rel:["show routing route"]},
+ {k:"show running nat-policy",cat:"verify",m:[/^show running nat-policy$/],mode:"oper",
+  out:'"inbound-portal" {\n  source any;  destination 203.0.113.10;\n  to untrust;  translate-to "10.1.5.20";\n}',
+  does:"Shows the committed NAT rules in evaluation order.",
+  syn:"show running nat-policy  ·  test nat-policy-match",
+  use:"Pair it with the security policy: NAT decides the translation, security decides the permit — and the security rule matches the PRE-NAT address with the POST-NAT zone.",
+  rel:["test nat-policy-match","test security-policy-match source 10.1.1.5 destination 8.8.8.8"]},
+ {k:"test nat-policy-match",cat:"trouble",m:[/^test nat-policy-match.*$/],mode:"oper",
+  need:"Source, destination, protocol and ports for the flow you're testing.",
+  out:'"inbound-portal" {\n  translate to 10.1.5.20\n}',
+  does:"Runs a hypothetical flow through the NAT rulebase and names the matching rule.",
+  syn:"test nat-policy-match source <ip> destination <ip> protocol <n> destination-port <n>",
+  use:"The NAT half of the pair. When published traffic fails, run both this and test security-policy-match — they answer different questions and either can be the culprit.",
+  rel:["show running nat-policy","test security-policy-match source 10.1.1.5 destination 8.8.8.8"]},
+ {k:"show vpn ike-sa",cat:"trouble",m:[/^show vpn ike-sa$/,/^show vpn ipsec-sa$/,/^show vpn flow$/],mode:"oper",
+  need:"Configured IPsec tunnels.",
+  out:"gateway     peer            state  role  created\nto-branch   198.51.100.9    up     init  2026/08/09 14:02:11",
+  does:"Shows IKE phase 1 security associations — whether the tunnel negotiated at all.",
+  syn:"show vpn ike-sa (phase 1) · show vpn ipsec-sa (phase 2) · show vpn flow (counters) · show vpn gateway",
+  use:"Troubleshoot tunnels in order: phase 1 first (peers agree who they are), then phase 2 (they agree what to encrypt). Phase 1 up but phase 2 down means mismatched proxy IDs or transform sets.",
+  rel:["show session all"]},
+ {k:"show netstat statistics yes",cat:"trouble",m:[/^show netstat statistics yes$/],mode:"oper",
+  out:"tcp:\n  284917 packets sent\n  12 connections reset due to unexpected data\nip:\n  0 fragments dropped (dup or out of space)",
+  does:"Low-level network statistics for the management plane.",
+  syn:"show netstat statistics yes",
+  use:"When the firewall itself has connectivity trouble — reaching updates, DNS, or Panorama — rather than when user traffic is failing.",
+  rel:["ping host 8.8.8.8","show system info"]},
  {k:"show jobs all",cat:"verify",m:[/^show jobs all$/],mode:"oper",
   out:"ID  Type    Status  Result  Completed\n42  Commit  FIN     OK      14:22:08\n41  Commit  FIN     FAIL    13:02:44",
   does:"History of commits, content updates, and other background jobs.",syn:"show jobs all  ·  show jobs id 42",
@@ -1170,6 +1254,100 @@ linux:{name:"Linux host",hex:"#B08CFF",dev:"srv01 · Ubuntu 24.04",prompts:{oper
   use:"Prefer 'sudo <command>' over a root shell — every action gets logged with your identity, which is both an audit trail and a guardrail. Least privilege applies to you too.",
   rel:["ss -tlnp","systemctl status sshd"]},
 ]},
+};
+
+/* ============================ TASK FINDER ============================ */
+/* Modelled on the vendor cheat sheets: start from the JOB, not the command.
+   w = if you want to…   u = use…   m = where can I use this   n = what do I need   c = category */
+const TASKS={
+cisco:[
+ {w:"See every interface, its address, and whether it's up",u:"show ip interface brief",m:"Privileged EXEC (R1#)",n:"Nothing — read-only",c:"verify"},
+ {w:"See the full routing table",u:"show ip route",m:"Privileged EXEC (R1#)",n:"Nothing — read-only",c:"verify"},
+ {w:"Find out which single route a destination will actually use",u:"show ip route 10.2.5.5",m:"Privileged EXEC (R1#)",n:"The destination IP",c:"trouble"},
+ {w:"Check error counters on one interface",u:"show interfaces GigabitEthernet0/0",m:"Privileged EXEC (R1#)",n:"The interface ID",c:"trouble"},
+ {w:"Test reachability to a host",u:"ping 8.8.8.8  ·  ping 8.8.8.8 source Gi0/1",m:"User or Privileged EXEC",n:"Target IP; 'source' needs an interface with an address",c:"trouble"},
+ {w:"Find where latency or loss starts",u:"traceroute 8.8.8.8",m:"Privileged EXEC (R1#)",n:"Target IP",c:"trouble"},
+ {w:"See what's plugged into each port",u:"show cdp neighbors detail  ·  show lldp neighbors",m:"Privileged EXEC (R1#)",n:"CDP/LLDP enabled (CDP is on by default)",c:"verify"},
+ {w:"Check OSPF adjacencies",u:"show ip ospf neighbor",m:"Privileged EXEC (R1#)",n:"OSPF configured",c:"verify"},
+ {w:"Start making changes",u:"configure terminal",m:"Privileged EXEC (R1#)",n:"Privilege level 15 — and remember changes apply instantly",c:"config"},
+ {w:"Put a port in a VLAN",u:"switchport mode access  →  switchport access vlan 10",m:"Interface config (R1(config-if)#)",n:"The VLAN must already exist",c:"config"},
+ {w:"Add a default route",u:"ip route 0.0.0.0 0.0.0.0 203.0.113.1",m:"Global config (R1(config)#)",n:"A reachable next hop",c:"setup"},
+ {w:"Make your changes survive a reboot",u:"copy running-config startup-config  ·  wr",m:"Privileged EXEC (R1#)",n:"Nothing — do it every time",c:"save"},
+ {w:"Undo everything since the last save",u:"reload  (do NOT save first)",m:"Privileged EXEC (R1#)",n:"Console access if the change broke your path in",c:"save"},
+],
+arista:[
+ {w:"See port status, VLAN, duplex and speed at a glance",u:"show interfaces status",m:"Privileged EXEC (sw1#)",n:"Nothing — read-only",c:"verify"},
+ {w:"See the switch model, EOS version and uptime",u:"show version  ·  show version detail",m:"EXEC or Privileged EXEC",n:"Nothing",c:"verify"},
+ {w:"List the installed supervisor, fabric and linecard modules",u:"show module",m:"EXEC (sw1>)",n:"A modular chassis (7300/7500 series)",c:"verify"},
+ {w:"Find out what's connected to each port",u:"show lldp neighbors",m:"Privileged EXEC (sw1#)",n:"LLDP enabled",c:"verify"},
+ {w:"Stage changes so you can review before they go live",u:"configure session fix-uplink",m:"Privileged EXEC (sw1#)",n:"A name for the session",c:"config"},
+ {w:"See exactly what your staged change would do",u:"show session-config diffs",m:"Config-session (sw1(config-s-name)#)",n:"An open configure session",c:"config"},
+ {w:"Apply staged changes, with an auto-undo safety net",u:"commit timer 5",m:"Config-session mode",n:"You must run 'commit' again within 5 minutes to keep it",c:"config"},
+ {w:"Shorten a command you type constantly",u:"alias srie show running-config interface ethernet 1-5",m:"Global config (sw1(config)#)",n:"An alias name with no spaces; %1 for a parameter",c:"config"},
+ {w:"Run a command automatically on a schedule",u:"schedule backup interval 60 max-log-files 24 command show running-config",m:"Global config (sw1(config)#)",n:"Interval in minutes; logs land in flash:/schedule/<name>/",c:"config"},
+ {w:"Run a script automatically when an interface changes state",u:"event-handler eth_4  →  trigger on-intf ethernet 4 operstatus  →  action bash <script>",m:"Event-handler config",n:"A script on flash; $INTF and $OPERSTATE are passed to it",c:"config"},
+ {w:"Snapshot the config so you can restore it later",u:"configure checkpoint save pre-change  ·  configure checkpoint restore pre-change",m:"Privileged EXEC (sw1#)",n:"A checkpoint name (auto-named if omitted)",c:"save"},
+ {w:"Save the running config",u:"write  ·  copy running-config startup-config",m:"Privileged EXEC (sw1#)",n:"Nothing — both commands are equivalent",c:"save"},
+ {w:"See only the config lines relevant to the mode you're in",u:"show active  ·  show active all",m:"Any config mode except global",n:"Nothing — 'all' adds the hidden defaults",c:"verify"},
+ {w:"Get to the Linux shell for tcpdump or a script",u:"bash",m:"Privileged EXEC and config modes (not EXEC)",n:"Type logout, exit, or Ctrl-D to come back",c:"trouble"},
+ {w:"List files in flash",u:"dir flash:  ·  dir /all",m:"Privileged EXEC (sw1#)",n:"Nothing",c:"verify"},
+ {w:"Stop output paging during a long show command",u:"terminal length 0",m:"EXEC — set in global config to make it persistent",n:"0 disables paging entirely",c:"verify"},
+ {w:"See what commands were recently typed",u:"show history",m:"Privileged EXEC (sw1#)",n:"Buffer holds the last 20 commands",c:"verify"},
+],
+juniper:[
+ {w:"See all interfaces compactly",u:"show interfaces terse",m:"Operational mode (user@mx>)",n:"Nothing — read-only",c:"verify"},
+ {w:"See the routing table",u:"show route  ·  show route 10.2.5.5",m:"Operational mode (>)",n:"Nothing",c:"verify"},
+ {w:"Check BGP peers",u:"show bgp summary",m:"Operational mode (>)",n:"BGP configured",c:"verify"},
+ {w:"Check OSPF adjacencies",u:"show ospf neighbor",m:"Operational mode (>)",n:"OSPF configured",c:"verify"},
+ {w:"Start changing configuration",u:"configure  ·  configure exclusive (locks others out)",m:"Operational mode (>) → prompt becomes #",n:"# means CONFIG here, not privileged EXEC",c:"config"},
+ {w:"Give an interface an IP address",u:"set interfaces ge-0/0/0 unit 0 family inet address 10.1.1.1/24",m:"Configuration mode (#)",n:"Interface name, a unit number (0 if only one), and the family",c:"setup"},
+ {w:"Review your pending changes before applying them",u:"show | compare",m:"Configuration mode (#)",n:"Uncommitted edits in the candidate config",c:"config"},
+ {w:"Apply changes but auto-undo if you lose access",u:"commit confirmed 5",m:"Configuration mode (#)",n:"Run 'commit' again inside the window or it rolls back",c:"config"},
+ {w:"Apply changes permanently",u:"commit  ·  commit and-quit",m:"Configuration mode (#)",n:"A candidate config that passes validation",c:"config"},
+ {w:"Undo the last committed change",u:"rollback 1  →  commit",m:"Configuration mode (#)",n:"rollback 0 discards uncommitted edits instead",c:"save"},
+ {w:"Read the system log",u:"show log messages  ·  monitor start messages",m:"Operational mode (>)",n:"Nothing",c:"trouble"},
+ {w:"Check hardware inventory for a support case",u:"show chassis hardware",m:"Operational mode (>)",n:"Nothing",c:"verify"},
+],
+nokia:[
+ {w:"See the logical Layer 3 interfaces",u:"show router interface",m:"Operational (A:SR1#)",n:"Nothing — read-only",c:"verify"},
+ {w:"See the physical ports and their link state",u:"show port  ·  show port 1/1/1 detail",m:"Operational (A:SR1#)",n:"Port ID for the detail form",c:"verify"},
+ {w:"See the routing table",u:"show router route-table",m:"Operational (A:SR1#)",n:"Nothing — 'Pref' is Nokia's administrative distance",c:"verify"},
+ {w:"Check BGP peers",u:"show router bgp summary",m:"Operational (A:SR1#)",n:"BGP configured under the router context",c:"verify"},
+ {w:"Check OSPF adjacencies",u:"show router ospf neighbor",m:"Operational (A:SR1#)",n:"OSPF configured",c:"verify"},
+ {w:"Get chassis type and TiMOS version for a TAC case",u:"show system information",m:"Operational (A:SR1#)",n:"Nothing — also shows when config was last saved",c:"verify"},
+ {w:"Find out what's connected to a port",u:"show system lldp neighbor",m:"Operational (A:SR1#)",n:"LLDP enabled (lives under 'system', not 'router')",c:"verify"},
+ {w:"Save the configuration",u:"admin save",m:"Operational (A:SR1#)",n:"Nothing — the * in *A:SR1# means unsaved changes exist",c:"save"},
+ {w:"Read the event log",u:"show log log-id 99",m:"Operational (A:SR1#)",n:"Log 99 is the default event log",c:"trouble"},
+],
+panos:[
+ {w:"Display the routing table",u:"show routing route",m:"Operational mode (admin@PA>)",n:"Nothing — read-only",c:"verify"},
+ {w:"Look at routes for one specific destination",u:"show routing fib virtual-router <name> | match <x.x.x.x/Y>",m:"Operational mode (>)",n:"The virtual-router name and the prefix",c:"trouble"},
+ {w:"Find out which security rule a flow would hit",u:"test security-policy-match source <ip> destination <ip> [application <app>]",m:"Operational mode (>)",n:"Source and destination; use the PRE-NAT destination for inbound NAT",c:"trouble"},
+ {w:"Show the NAT policy table",u:"show running nat-policy",m:"Operational mode (>)",n:"Committed NAT rules",c:"verify"},
+ {w:"Test which NAT rule applies to a flow",u:"test nat-policy-match",m:"Operational mode (>)",n:"Source, destination, protocol and ports",c:"trouble"},
+ {w:"See live sessions passing through the firewall",u:"show session all  ·  show session all filter destination <ip>",m:"Operational mode (>)",n:"Filter on a busy box or the output is unreadable",c:"trouble"},
+ {w:"Ping from the management interface",u:"ping host <destination-ip>",m:"Operational mode (>)",n:"The 'host' keyword is required before the address",c:"trouble"},
+ {w:"Ping from a data-plane interface instead of MGT",u:"ping source <ip-on-dataplane> host <destination-ip>",m:"Operational mode (>)",n:"An IP configured on the data-plane interface",c:"trouble"},
+ {w:"Show network statistics",u:"show netstat statistics yes",m:"Operational mode (>)",n:"Nothing",c:"trouble"},
+ {w:"Check IPsec tunnel status",u:"show vpn ike-sa (phase 1)  ·  show vpn ipsec-sa (phase 2)  ·  show vpn flow (counters)",m:"Operational mode (>)",n:"Configured IPsec tunnels",c:"trouble"},
+ {w:"Check BFD sessions and counters",u:"show routing bfd details  ·  show counter global | match bfd",m:"Operational mode (>)",n:"BFD configured on a routing protocol",c:"trouble"},
+ {w:"View BGP peer status (Advanced Routing engine)",u:"show advanced-routing bgp summary logical-router <name>",m:"Operational mode (>)",n:"The logical-router name; Advanced Routing enabled",c:"verify"},
+ {w:"Change the ARP cache timeout",u:"set system setting arp-cache-timeout <60-65536>  ·  show system setting arp-cache-timeout",m:"Operational mode (>)",n:"Seconds; the default is 1800",c:"config"},
+ {w:"Start editing configuration",u:"configure",m:"Operational mode (>) → prompt becomes #",n:"Nothing takes effect until you commit",c:"config"},
+ {w:"Apply your changes",u:"commit",m:"Configuration mode (#)",n:"Read the warnings — shadowed rules are reported here",c:"config"},
+],
+linux:[
+ {w:"See interfaces and their addresses",u:"ip a  ·  ip -br a (one line each)",m:"Any shell",n:"Nothing",c:"verify"},
+ {w:"See the routing table",u:"ip r  ·  ip r get 8.8.8.8 (which route would be used)",m:"Any shell",n:"Nothing",c:"verify"},
+ {w:"Find what is listening on a port",u:"sudo ss -tlnp",m:"Any shell (sudo for process names)",n:"sudo to see which process owns each socket",c:"trouble"},
+ {w:"Test DNS directly",u:"dig example.com  ·  dig @8.8.8.8 example.com",m:"Any shell",n:"dnsutils/bind-utils installed",c:"trouble"},
+ {w:"Watch actual packets on the wire",u:"sudo tcpdump -i any -c 5 port 443",m:"Any shell with sudo",n:"Interface name and a filter; add -w file.pcap for Wireshark",c:"trouble"},
+ {w:"Check whether a service is running",u:"systemctl status sshd",m:"Any shell",n:"The unit name",c:"trouble"},
+ {w:"Read a service's real error messages",u:"journalctl -u ssh -n 50  ·  add -f to follow live",m:"Any shell",n:"The unit name",c:"trouble"},
+ {w:"Review authentication attempts",u:"sudo tail -n 50 /var/log/auth.log",m:"Any shell with sudo",n:"Debian/Ubuntu path; RHEL uses /var/log/secure",c:"trouble"},
+ {w:"Lock a file down to owner-only",u:"chmod 600 secrets.txt",m:"Any shell",n:"You must own the file",c:"config"},
+ {w:"Become root for a task",u:"sudo <command>  (preferred)  ·  sudo -i (full shell)",m:"Any shell",n:"sudo rights — per-command is logged with your identity",c:"config"},
+],
 };
 
 /* ============================ COMMAND REFERENCE (learning) ============================ */
@@ -1593,6 +1771,7 @@ function renderHome(){
       ${navItem("▤","rgba(63,214,198,.15)","My stats","go({screen:'stats'})")}
       ${navItem("⌘","rgba(123,216,143,.15)","Command reference","go({screen:'learn'})")}
       ${navItem("▶","rgba(63,214,198,.15)","Command sandbox","go({screen:'sandbox'})")}
+      ${navItem("⌕","rgba(255,179,71,.15)","Task finder","go({screen:'tasks'})")}
     </nav>
     <div class="panel">${osiLadder()}</div>
     <div class="panel" style="font-family:var(--mono);font-size:12px;color:var(--dim);display:grid;gap:7px">
@@ -1699,6 +1878,13 @@ function renderHome(){
         <p>Type real commands against real scenarios — Cisco, Arista, Junos, Nokia, PAN-OS, Windows, Linux · <span style="color:var(--text)">${cmdSolved}/${CMDS.length} solved</span></p></div>
         <button class="btn ghost" style="border-color:var(--green);color:var(--green);font-size:10px;padding:8px 12px;margin-left:auto" onclick="go({screen:'learn'})">⌘ Reference</button></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${Object.entries(GRP).map(([k,tt])=>`<button class="btn ghost" style="border-color:${tt.hex};color:${tt.hex};font-size:10px;padding:8px 12px" onclick="go({screen:'cmdlab',track:'${k}'})">${tt.short}</button>`).join("")}</div>
+    </div>
+
+    <div class="panel feat span2">
+      <div class="fh">${chip("linear-gradient(135deg,#FFC167,#FF8E3C)","⌕")}
+        <div><h3>Task Finder</h3>
+        <p>"If you want to… use…" — search by the job you're doing, across six platforms</p></div>
+        <button class="btn" style="font-size:10px;padding:8px 14px;margin-left:auto" onclick="go({screen:'tasks'})">Search</button></div>
     </div>
 
     <div class="panel feat span2">
@@ -1953,6 +2139,7 @@ window.gatePick=function(idx){
    Optional groups expand to their full form: sh(ow)? ip ospf nei(ghbor)? -> show ip ospf neighbor */
 function ansOf(o){
   if(o.ans)return o.ans;
+  if(!o.ac||!o.ac.length)return o.k||"";   /* sandbox entries carry a canonical .k instead */
   return String(o.ac[0].source)
     .replace(/^\^|\$$/g,"")
     .replace(/\(\s*\\S\+\s*\)\?/g," ")   /* optional free-form argument */
@@ -3326,6 +3513,12 @@ function renderSandbox(){
         <div style="font-size:13.5px;line-height:1.6">${esc(L.does)}</div></div>
       <div style="margin-top:12px"><div class="eyebrow" style="margin-bottom:5px">Syntax</div>
         <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--panel2);border-radius:8px;padding:9px 11px">${esc(L.syn)}</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px" class="kn-2col">
+        <div><div class="eyebrow" style="margin-bottom:5px">Where can I use this?</div>
+          <div style="font-size:12.5px;line-height:1.5;color:var(--text)">${esc(L.mode==="conf"?"Configuration mode — "+d.prompts.conf:"Operational mode — "+d.prompts.oper)}</div></div>
+        <div><div class="eyebrow" style="margin-bottom:5px">What do I need?</div>
+          <div style="font-size:12.5px;line-height:1.5;color:var(--text)">${esc(L.need||"Nothing — this command is read-only and safe to run.")}</div></div>
+      </div>
       <div style="margin-top:12px"><div class="eyebrow" style="margin-bottom:5px">When you'd use it</div>
         <div style="font-size:13.5px;line-height:1.6;color:var(--text)">${esc(L.use)}</div></div>
       ${L.rel&&L.rel.length?`<div style="margin-top:12px"><div class="eyebrow" style="margin-bottom:6px">Try next</div>
@@ -3370,6 +3563,7 @@ function renderSandbox(){
           <button class="btn" style="background:${d.hex};border-color:${d.hex};font-size:11px;padding:9px 16px" onclick="sbRun()">Run ⏎</button>
           <button class="btn ghost" style="border-color:var(--dim);color:var(--dim);font-size:11px;padding:9px 14px" onclick="sbClear()">Clear</button>
           <button class="btn ghost" style="border-color:var(--green);color:var(--green);font-size:11px;padding:9px 14px" onclick="go({screen:'learn'})">⌘ Reference</button>
+          <button class="btn ghost" style="border-color:var(--amber);color:var(--amber);font-size:11px;padding:9px 14px" onclick="tfVendor(sb.v);go({screen:'tasks'})">⌕ Task finder</button>
         </div>
         ${know}
       </div>
@@ -3380,8 +3574,62 @@ function renderSandbox(){
       </div>
     </div>
     <div class="nav" style="margin-top:20px"><button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="go({screen:'home'})">Home</button></div></div>
-  <style>@media(max-width:860px){.sb-grid{grid-template-columns:1fr !important}}</style>`;
+  <style>@media(max-width:860px){.sb-grid{grid-template-columns:1fr !important}}@media(max-width:520px){.kn-2col{grid-template-columns:1fr !important}}</style>`;
   const inp=document.getElementById("sb-in");if(inp&&inp.focus)try{inp.focus();}catch(e){}
+}
+
+/* ---------------- TASK FINDER ---------------- */
+let tf={v:"cisco",q:"",c:"all"};
+window.tfVendor=function(v){tf.v=v;render();};
+window.tfCat=function(c){tf.c=c;render();};
+window.tfSearch=function(){const i=document.getElementById("tf-q");tf.q=i?i.value:"";render();};
+function renderTasks(){
+  const meta=LEARN.find(x=>x.id===tf.v)||LEARN[0];
+  const all=TASKS[tf.v]||[];
+  const q=tf.q.trim().toLowerCase();
+  const rows=all.filter(r=>(tf.c==="all"||r.c===tf.c)&&(!q||(r.w+" "+r.u+" "+r.n).toLowerCase().includes(q)));
+  const pills=Object.keys(TASKS).map(k=>{const L=LEARN.find(x=>x.id===k)||{name:k,hex:"#8C97AC"};
+    return `<button class="btn ghost" style="border-color:${k===tf.v?L.hex:'var(--line)'};color:${k===tf.v?L.hex:'var(--dim)'};font-size:10.5px;padding:8px 13px" onclick="tfVendor('${k}')">${esc(L.name)}</button>`;}).join("");
+  const cats=["all","verify","trouble","config","setup","save"].filter(c=>c==="all"||all.some(r=>r.c===c));
+  const filters=cats.map(c=>`<button class="btn ghost" style="border-color:${tf.c===c?(c==="all"?meta.hex:CAT[c].c):'var(--line)'};color:${tf.c===c?(c==="all"?meta.hex:CAT[c].c):'var(--dim)'};font-size:9.5px;padding:6px 11px" onclick="tfCat('${c}')">${c==="all"?"All":esc(CAT[c].n)}</button>`).join("");
+
+  const body=rows.map(r=>`<div class="panel" style="padding:0;overflow:hidden;border-left:3px solid ${CAT[r.c].c}">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0" class="tf-row">
+      <div style="padding:13px 15px">
+        <div class="eyebrow" style="margin-bottom:5px">If you want to…</div>
+        <div style="font-size:14px;line-height:1.5;font-weight:600">${esc(r.w)}</div></div>
+      <div style="padding:13px 15px;background:var(--panel2)">
+        <div class="eyebrow" style="margin-bottom:5px;color:${CAT[r.c].c}">Use…</div>
+        <div style="font-family:var(--mono);font-size:12.5px;line-height:1.6;color:var(--text)">${esc(r.u)}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--line)" class="tf-row">
+      <div style="padding:10px 15px">
+        <div class="eyebrow" style="margin-bottom:4px">Where can I use this?</div>
+        <div style="font-size:12px;color:var(--dim);line-height:1.5">${esc(r.m)}</div></div>
+      <div style="padding:10px 15px;background:rgba(148,175,215,.04)">
+        <div class="eyebrow" style="margin-bottom:4px">What do I need?</div>
+        <div style="font-size:12px;color:var(--dim);line-height:1.5">${esc(r.n)}</div></div>
+    </div></div>`).join("");
+
+  app.innerHTML=header()+`<div style="max-width:940px;margin:0 auto">
+    <span class="eyebrow" style="color:var(--amber)">Task Finder</span>
+    <h2 class="screen-title" style="margin:4px 0 6px">Start from the job, not the command</h2>
+    <p style="font-size:13px;color:var(--dim)">Search what you're trying to do and get the command, where it runs, and what it needs.</p>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin:14px 0 10px">${pills}</div>
+    <input id="tf-q" value="${esc(tf.q)}" placeholder="Search — e.g. 'routing table', 'save', 'bgp', 'ping'" oninput="tfSearch()"
+      style="width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:11px;color:var(--text);font-size:14.5px;padding:13px 15px;outline:none;font-family:var(--sans)">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:11px 0 14px">${filters}</div>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:10px">${rows.length} of ${all.length} tasks</div>
+    <div class="grid">${body||'<div class="panel" style="color:var(--dim);font-size:14px">Nothing matches that. Try a shorter word — or check the Command Reference for the platform\'s way of naming things.</div>'}</div>
+    <div class="nav" style="margin-top:20px">
+      <button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="go({screen:'home'})">Home</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn ghost" style="border-color:var(--green);color:var(--green);font-size:11px;padding:9px 14px" onclick="go({screen:'learn'})">⌘ Reference</button>
+        <button class="btn" style="background:var(--cyan);border-color:var(--cyan);font-size:11px;padding:9px 14px" onclick="sbVendor('${tf.v}');go({screen:'sandbox'})">▶ Try in sandbox</button>
+      </div></div></div>
+  <style>@media(max-width:640px){.tf-row{grid-template-columns:1fr !important}}</style>`;
+  const i=document.getElementById("tf-q");
+  if(i&&i.focus){try{i.focus();if(i.setSelectionRange)i.setSelectionRange(i.value.length,i.value.length);}catch(e){}}
 }
 
 /* ---------------- ROUTER ---------------- */
@@ -3398,6 +3646,7 @@ function render(){
     case"stats":renderStats();break;
     case"learn":renderLearn();break;
     case"sandbox":renderSandbox();break;
+    case"tasks":renderTasks();break;
     case"cmdlab":if(cl.track!==S.track||!cl.deck||S.fresh){startCmd(S.track);S.fresh=false;}renderCmd();break;
     case"lab":if(!lb.lab||lb.lab.id!==S.id||lb.done&&S.fresh||S.fresh){startLab(S.id);S.fresh=false;}renderLab();break;
     case"quiz":if(quiz.track!==S.track||quiz.level!==S.level||quiz.smart||!quiz.deck||S.fresh){startQuiz(S.track,false,S.level);S.fresh=false;}renderQuiz();break;
