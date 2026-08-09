@@ -1153,7 +1153,9 @@ function renderHome(){
       </div></div>`;
   }
 
-  const inProgress = quiz.deck && quiz.i < quiz.deck.length;
+  /* finished = answered the final question; only offer Resume before that */
+  const quizDone = quiz.deck && quiz.i >= quiz.deck.length-1 && quiz.picked !== null;
+  const inProgress = quiz.deck && quiz.i < quiz.deck.length && !quizDone;
   const resumeCard = inProgress ? `
     <div class="panel span2" style="border-left:3px solid var(--cyan);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
       <div><span class="eyebrow" style="color:var(--cyan)">▸ Continue where you left off</span>
