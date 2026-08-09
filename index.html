@@ -6,64 +6,100 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>CERT://COMMAND — Certification Training Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0B1220; --panel:#121C2D; --panel2:#182539; --line:#22334D;
-    --text:#DCE6F5; --dim:#7C8DA8; --amber:#FFB347; --cyan:#3FD6C6;
-    --red:#F4634E; --blue:#5B9DFF; --purple:#B08CFF;
+    --bg:#06090F; --panel:rgba(148,175,215,.05); --panel2:rgba(148,175,215,.10); --line:rgba(148,175,215,.14);
+    --text:#E9EEF7; --dim:#8C97AC; --amber:#FFB347; --cyan:#3FD6C6;
+    --red:#F4634E; --blue:#5B9DFF; --purple:#B08CFF; --green:#7BD88F;
     --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    --sans:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --sans:'Inter',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --r:16px;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html{scrollbar-color:rgba(148,175,215,.25) transparent}
   body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;padding-bottom:56px}
-  #app{max-width:1000px;margin:0 auto;padding:0 16px}
-  header{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;padding:20px 0 24px}
+  body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+    radial-gradient(600px 420px at 12% -4%, rgba(255,150,60,.13), transparent 65%),
+    radial-gradient(720px 520px at 96% 100%, rgba(63,214,198,.10), transparent 65%),
+    radial-gradient(480px 360px at 70% 8%, rgba(91,157,255,.07), transparent 60%);}
+  #app{max-width:1120px;margin:0 auto;padding:0 18px}
+  header{position:sticky;top:0;z-index:40;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:14px 4px;margin:0 -4px 22px;background:rgba(6,9,15,.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    border-bottom:1px solid var(--line)}
   .logo{background:none;border:none;cursor:pointer;text-align:left;padding:0}
-  .logo h1{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--text);letter-spacing:1px}
+  .logo h1{font-family:var(--mono);font-size:19px;font-weight:700;color:var(--text);letter-spacing:1px}
   .logo h1 span{color:var(--amber)}
-  .logo small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-top:2px}
-  .hdr-xp{font-family:var(--mono);font-size:12px;color:var(--amber)}
-  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
-  .btn{font-family:var(--mono);font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:12px 20px;
-       cursor:pointer;border-radius:6px;font-weight:700;transition:transform .1s,opacity .2s;border:1px solid var(--amber);
-       background:var(--amber);color:#0B1220}
+  .logo small{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:2.5px;color:var(--dim);text-transform:uppercase;margin-top:2px}
+  .hdr-xp{font-family:var(--mono);font-size:12px;color:var(--amber);background:var(--panel);border:1px solid var(--line);
+    border-radius:99px;padding:7px 14px}
+  .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
+  .btn{font-family:var(--mono);font-size:12.5px;letter-spacing:1px;text-transform:uppercase;padding:11px 20px;
+       cursor:pointer;border-radius:11px;font-weight:700;transition:transform .12s,box-shadow .2s,opacity .2s;
+       border:1px solid var(--amber);background:linear-gradient(135deg,#FFC167,#FFA22E);color:#0B1220;
+       box-shadow:0 8px 24px -10px rgba(255,179,71,.45)}
+  .btn:hover{transform:translateY(-1px)}
   .btn:active{transform:translateY(1px)}
-  .btn.ghost{background:transparent}
-  .btn:disabled{opacity:.4;cursor:default}
-  .btn:focus-visible,.opt:focus-visible,.card-flip:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px}
-  .grid{display:grid;gap:10px}
-  .home{display:grid;grid-template-columns:1fr 300px;gap:24px}
-  @media(max-width:760px){.home{grid-template-columns:1fr}}
-  .track{border-left-width:3px !important;border-left-style:solid}
-  .track h3{font-size:18px}
+  .btn.ghost{background:transparent;box-shadow:none}
+  .btn.ghost:hover{background:var(--panel)}
+  .btn:disabled{opacity:.35;cursor:default;transform:none}
+  .btn:focus-visible,.opt:focus-visible,.card-flip:focus-visible,.navlink:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  .panel{background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border:1px solid var(--line);border-radius:var(--r);padding:18px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 12px 32px -20px rgba(0,0,0,.8)}
+  .grid{display:grid;gap:12px}
+  .home{display:grid;grid-template-columns:248px 1fr;gap:20px;align-items:start}
+  .side{display:grid;gap:14px;position:sticky;top:76px}
+  .main-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .span2{grid-column:1/-1}
+  @media(max-width:920px){
+    .home{grid-template-columns:1fr}
+    .side{position:static;order:2}
+    .main-grid{grid-template-columns:1fr}
+  }
+  .navlink{display:flex;align-items:center;gap:11px;width:100%;padding:10px 12px;border-radius:11px;border:1px solid transparent;
+    background:none;color:var(--dim);font-family:var(--sans);font-size:13.5px;font-weight:600;cursor:pointer;text-align:left;
+    transition:background .15s,color .15s}
+  .navlink:hover{background:var(--panel2);color:var(--text)}
+  .navlink.on{background:var(--panel2);border-color:var(--line);color:var(--text)}
+  .navlink .ic{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+  .chip{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;
+    box-shadow:0 6px 18px -8px rgba(0,0,0,.7)}
+  .feat{display:flex;flex-direction:column;gap:10px}
+  .feat .fh{display:flex;align-items:center;gap:12px}
+  .feat h3{font-size:15.5px;font-weight:700;letter-spacing:.2px}
+  .feat p{font-size:12.5px;color:var(--dim);line-height:1.5}
+  .track h3{font-size:17px;font-weight:700}
   .track p{font-size:13px;color:var(--dim);margin-top:2px}
   .track .row{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px}
   .track .acts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
   .stat{font-family:var(--mono);font-size:11px}
-  .osi-row{position:relative;height:22px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  .osi-row{position:relative;height:22px;background:var(--panel2);border:1px solid var(--line);border-radius:7px;overflow:hidden}
   .osi-fill{position:absolute;inset:0;background:rgba(255,179,71,.22);transition:width .4s ease}
-  .osi-lbl{position:relative;display:flex;justify-content:space-between;align-items:center;height:100%;padding:0 8px;font-family:var(--mono);font-size:11px}
-  .opt{display:flex;gap:12px;align-items:flex-start;text-align:left;padding:12px 14px;background:var(--panel2);
-       border:1px solid var(--line);border-radius:6px;color:var(--text);font-size:15px;cursor:pointer;font-family:var(--sans);line-height:1.4;width:100%}
+  .osi-lbl{position:relative;display:flex;justify-content:space-between;align-items:center;height:100%;padding:0 8px;font-family:var(--mono);font-size:10.5px}
+  .opt{display:flex;gap:12px;align-items:flex-start;text-align:left;padding:13px 15px;background:var(--panel2);
+       border:1px solid var(--line);border-radius:12px;color:var(--text);font-size:15px;cursor:pointer;font-family:var(--sans);line-height:1.45;width:100%;
+       transition:border-color .15s,background .15s}
+  .opt:hover{border-color:rgba(148,175,215,.32)}
   .opt .mk{font-family:var(--mono);font-size:12px;color:var(--dim);min-width:16px;padding-top:2px}
-  .opt.correct{border-color:var(--cyan);background:rgba(63,214,198,.12)}
+  .opt.correct{border-color:var(--cyan);background:rgba(63,214,198,.10)}
   .opt.correct .mk{color:var(--cyan)}
-  .opt.wrong{border-color:var(--red);background:rgba(244,99,78,.12)}
+  .opt.wrong{border-color:var(--red);background:rgba(244,99,78,.10)}
   .opt.wrong .mk{color:var(--red)}
-  .opt.sel{border-color:var(--blue);background:rgba(91,157,255,.12)}
-  .explain{margin-top:16px;padding:14px;background:var(--panel2);border-left:3px solid var(--cyan);border-radius:4px;font-size:14px;line-height:1.55}
+  .opt.sel{border-color:var(--blue);background:rgba(91,157,255,.10)}
+  .explain{margin-top:16px;padding:14px 16px;background:var(--panel2);border-left:3px solid var(--cyan);border-radius:10px;font-size:14px;line-height:1.55}
   .explain.bad{border-left-color:var(--red)}
   .explain .tag{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:1px}
   .nav{display:flex;justify-content:space-between;margin-top:16px;gap:10px;flex-wrap:wrap;align-items:center}
-  .card-flip{width:100%;min-height:230px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:28px;
+  .card-flip{width:100%;min-height:230px;background:var(--panel);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:var(--r);padding:28px;
              cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;transition:border-color .2s;color:var(--text)}
   .qbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-family:var(--mono);font-size:12px;gap:8px;flex-wrap:wrap}
-  .tbar{height:4px;background:var(--panel2);border-radius:2px;margin-bottom:16px;overflow:hidden}
-  .tbar div{height:100%;background:var(--amber);transition:width 1s linear}
+  .tbar{height:5px;background:var(--panel2);border-radius:3px;margin-bottom:16px;overflow:hidden}
+  .tbar div{height:100%;background:linear-gradient(90deg,#FFC167,#FFA22E);transition:width 1s linear}
   .tbar.low div{background:var(--red)}
   .exam-map{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
-  .exam-map button{width:34px;height:30px;font-family:var(--mono);font-size:11px;border-radius:4px;border:1px solid var(--line);
+  .exam-map button{width:34px;height:30px;font-family:var(--mono);font-size:11px;border-radius:8px;border:1px solid var(--line);
                    background:var(--panel2);color:var(--dim);cursor:pointer}
   .exam-map button.answered{border-color:var(--blue);color:var(--text)}
   .exam-map button.flagged{border-color:var(--amber);color:var(--amber)}
@@ -73,12 +109,13 @@
   .report-dom .bar div{height:100%}
   .big{font-family:var(--mono);font-size:54px;font-weight:700}
   .center{text-align:center}
-  .miss-item{padding:12px;background:var(--panel2);border-radius:6px;font-size:14px;line-height:1.5;border-left:3px solid var(--red)}
+  .miss-item{padding:13px 15px;background:var(--panel2);border-radius:12px;font-size:14px;line-height:1.5;border-left:3px solid var(--red)}
   .miss-item .x{color:var(--dim);font-size:13px;margin-top:6px}
-  h2.screen-title{font-size:20px;margin-bottom:4px}
+  h2.screen-title{font-size:21px;font-weight:800;letter-spacing:-.2px}
+  input[type="text"]{border-radius:0}
   @media(prefers-reduced-motion:reduce){*{transition:none !important}}
-  footer{position:fixed;bottom:0;left:0;right:0;background:rgba(11,18,32,.92);border-top:1px solid var(--line);
-         font-family:var(--mono);font-size:10px;color:var(--dim);text-align:center;padding:8px;letter-spacing:1px}
+  footer{position:fixed;bottom:0;left:0;right:0;background:rgba(6,9,15,.85);backdrop-filter:blur(12px);border-top:1px solid var(--line);
+         font-family:var(--mono);font-size:10px;color:var(--dim);text-align:center;padding:8px;letter-spacing:1px;z-index:30}
 </style>
 </head>
 <body>
@@ -1004,115 +1041,145 @@ function osiLadder(){
 /* ---------------- HOME ---------------- */
 function renderHome(){
   const weakCount=Q.filter(q=>{const s=qstats[qid(q)];return s&&s.miss>0&&s.streak<2;}).length;
+  const kotdIdx=Math.floor(Date.now()/864e5)%KOTD.length;
+  const nug=KOTD[kotdIdx];
+  const claimed=stats.kotd.date===dstr(new Date());
+  const cmdSolved=CMDS.filter(c=>stats.cmd[c.id]===true).length;
+  const mins=todayMins(), goal=stats.time.goal, blocks=Math.ceil(goal/30), sMin=sessionMins();
+  let blockHtml="";
+  for(let b=0;b<blocks;b++){
+    const filled=Math.max(0,Math.min(30,mins-b*30));
+    blockHtml+=`<div style="flex:1;height:10px;background:var(--panel2);border:1px solid var(--line);border-radius:5px;overflow:hidden"><div style="height:100%;width:${filled/30*100}%;background:${mins>=goal?'var(--cyan)':'linear-gradient(90deg,#FFC167,#FFA22E)'}"></div></div>`;
+  }
+  const labsDone=LABS.filter(l=>stats.labs[l.id]).length;
+
+  const chip=(bg,sym)=>`<div class="chip" style="background:${bg}">${sym}</div>`;
+  const featBtn=(hex,label,act)=>`<button class="btn" style="background:${hex};border-color:${hex};box-shadow:0 8px 22px -10px ${hex}88;font-size:11px;padding:9px 16px" onclick="${act}">${label}</button>`;
+
+  /* sidebar */
+  const navItem=(sym,bg,label,act,on)=>`<button class="navlink${on?' on':''}" onclick="${act}"><span class="ic" style="background:${bg}">${sym}</span>${label}</button>`;
+  const side=`<aside class="side">
+    <nav class="panel" style="padding:10px;display:grid;gap:2px">
+      ${navItem("▦","rgba(255,179,71,.15)","Dashboard","go({screen:'home'})",true)}
+      ${navItem("◈","rgba(255,179,71,.15)","Test your knowledge","go({screen:'diag'})")}
+      ${navItem("◎","rgba(63,214,198,.15)","Smart Review","go({screen:'smart'})")}
+      ${navItem("◫","rgba(91,157,255,.15)","Scenario Lab","go({screen:'scenList'})")}
+      ${navItem("⟲","rgba(176,140,255,.15)","Explain it back","go({screen:'explain'})")}
+      ${navItem("⚡","rgba(255,179,71,.15)","Blitz mode","go({screen:'blitz'})")}
+      ${navItem("✕","rgba(244,99,78,.15)","Missed log","go({screen:'missed'})")}
+    </nav>
+    <div class="panel">${osiLadder()}</div>
+    <div class="panel" style="font-family:var(--mono);font-size:12px;color:var(--dim);display:grid;gap:7px">
+      <div>Daily streak <span style="color:var(--red);float:right">🔥 ${liveStreak()} (best ${stats.daily.best})</span></div>
+      <div>Best answer streak <span style="color:var(--cyan);float:right">${stats.bestStreak}</span></div>
+      <div>Scenarios <span style="color:var(--blue);float:right">${Object.keys(stats.scen).length}/${SCEN.length}</span></div>
+      <div>Concepts mastered <span style="color:var(--purple);float:right">${Object.keys(stats.expl).length}/${EXPLAIN.length}</span></div>
+      <div>Commands solved <span style="color:var(--green);float:right">${cmdSolved}/${CMDS.length}</span></div>
+      <div>Labs complete <span style="color:var(--red);float:right">${labsDone}/${LABS.length}</span></div>
+      <div>Question bank <span style="color:var(--text);float:right">${Q.length}</span></div>
+      <div style="margin-top:2px;font-size:10.5px">Correct +25 XP · streak ×5 +50 · exam pass +200</div>
+    </div>
+  </aside>`;
+
+  /* track cards */
   let tracks="";
   for(const[k,t]of Object.entries(TRACKS)){
     const p=stats.perTrack[k];
     const acc=p.seen?Math.round(p.correct/p.seen*100):null;
     const ex=stats.exams[k];
-    tracks+=`<div class="panel track" style="border-left-color:${t.hex}">
+    tracks+=`<div class="panel track span2" style="border-left:3px solid ${t.hex}">
       <div class="row"><div><h3>${t.name}</h3><p>${t.desc}</p></div>
         <span class="stat" style="color:${acc===null?'var(--dim)':acc>=80?'var(--cyan)':acc>=60?'var(--amber)':'var(--red)'}">
         ${acc===null?"no data":acc+"% acc · "+p.seen+" answered"}</span></div>
       ${ex?`<div class="stat" style="margin-top:6px;color:${ex.pass?'var(--cyan)':'var(--red)'}">Last exam: ${ex.score}% ${ex.pass?'PASS':'FAIL'} (need ${t.pass}%)</div>`:''}
       ${stats.diag[k]?`<div class="stat" style="margin-top:4px;color:${stats.diag[k].ready?'var(--cyan)':LV[stats.diag[k].lv].c}">◈ knowledge test: ${stats.diag[k].ready?'exam-ready — all levels unlocked':'placed at '+LV[stats.diag[k].lv].n}</div>`:''}
       <div class="acts">
-        <button class="btn" style="background:${t.hex};border-color:${t.hex}" onclick="go({screen:'levels',track:'${k}'})">Quiz</button>
+        <button class="btn" style="background:${t.hex};border-color:${t.hex};box-shadow:0 8px 22px -10px ${t.hex}88" onclick="go({screen:'levels',track:'${k}'})">Quiz</button>
         <button class="btn ghost" style="border-color:${t.hex};color:${t.hex}" onclick="go({screen:'cards',track:'${k}'})">Flashcards</button>
         <button class="btn ghost" style="border-color:${t.hex};color:${t.hex}" onclick="go({screen:'examIntro',track:'${k}'})">Practice Exam</button>
       </div></div>`;
   }
-  const kotdIdx=Math.floor(Date.now()/864e5)%KOTD.length;
-  const nug=KOTD[kotdIdx];
-  const today=dstr(new Date());
-  const claimed=stats.kotd.date===today;
-  const cmdSolved=CMDS.filter(c=>stats.cmd[c.id]===true).length;
-  const mins=todayMins(), goal=stats.time.goal, blocks=Math.ceil(goal/30);
-  const sMin=sessionMins();
-  let blockHtml="";
-  for(let b=0;b<blocks;b++){
-    const filled=Math.max(0,Math.min(30,mins-b*30));
-    blockHtml+=`<div style="flex:1;height:10px;background:var(--panel2);border:1px solid var(--line);border-radius:3px;overflow:hidden"><div style="height:100%;width:${filled/30*100}%;background:${mins>=goal?'var(--cyan)':'var(--amber)'}"></div></div>`;
-  }
-  const labsDone=LABS.filter(l=>stats.labs[l.id]).length;
-  app.innerHTML=header()+`<div class="home"><div class="grid">
-    <div class="panel" style="border-left:3px solid ${mins>=goal?'var(--cyan)':'var(--amber)'}">
+
+  const main=`<div class="main-grid">
+    <div class="panel span2" style="border-left:3px solid ${mins>=goal?'var(--cyan)':'var(--amber)'}">
       <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
         <span class="eyebrow" style="color:${mins>=goal?'var(--cyan)':'var(--amber)'}">⏱ Study time today</span>
         <span style="font-family:var(--mono);font-size:13px;color:var(--text)">${mins}m / ${goal}m ${mins>=goal?'· ✓ goal met':''}</span></div>
-      <div style="display:flex;gap:5px;margin-top:10px">${blockHtml}</div>
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px">
+      <div style="display:flex;gap:6px;margin-top:12px">${blockHtml}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:11px">
         <span style="font-family:var(--mono);font-size:11px;color:${sMin>=30?'var(--cyan)':'var(--dim)'}">${sMin>=30?'▸ 30-min session done — good spot for a 5-min break':'session: '+Math.min(sMin,99)+'m / 30m'}</span>
         <span style="font-family:var(--mono);font-size:10px;color:var(--dim)">goal:
-          ${[60,90,120].map(g=>`<button onclick="setGoal(${g})" style="background:${goal===g?'var(--amber)':'transparent'};color:${goal===g?'#0B1220':'var(--dim)'};border:1px solid ${goal===g?'var(--amber)':'var(--line)'};border-radius:3px;font-family:var(--mono);font-size:10px;padding:2px 7px;cursor:pointer;margin-left:3px">${g/60}h</button>`).join("")}
+          ${[60,90,120].map(g=>`<button onclick="setGoal(${g})" style="background:${goal===g?'var(--amber)':'transparent'};color:${goal===g?'#0B1220':'var(--dim)'};border:1px solid ${goal===g?'var(--amber)':'var(--line)'};border-radius:6px;font-family:var(--mono);font-size:10px;padding:3px 8px;cursor:pointer;margin-left:3px">${g/60}h</button>`).join("")}
         </span></div>
     </div>
-    <div class="panel" style="border-left:3px solid ${TRACKS[nug.t].hex}">
+
+    <div class="panel span2" style="border-left:3px solid ${TRACKS[nug.t].hex}">
       <div class="eyebrow" style="color:${TRACKS[nug.t].hex}">☀ Knowledge of the day · ${TRACKS[nug.t].name}</div>
       <div style="font-size:16px;font-weight:700;margin-top:8px">${esc(nug.k)}</div>
-      <div style="font-size:14px;line-height:1.6;color:var(--text);margin-top:6px">${esc(nug.v)}</div>
+      <div style="font-size:13.5px;line-height:1.6;color:var(--text);margin-top:6px">${esc(nug.v)}</div>
       <div style="margin-top:12px">${claimed?`<span class="stat" style="color:var(--cyan)">✓ absorbed today</span>`:`<button class="btn ghost" style="border-color:${TRACKS[nug.t].hex};color:${TRACKS[nug.t].hex};font-size:11px;padding:8px 14px" onclick="kotdClaim()">Got it · +10 XP</button>`}</div>
     </div>
-    <div class="panel" style="border:1px dashed var(--amber)">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-        <div><h3 style="font-family:var(--mono);color:var(--amber);font-size:17px">◈ TEST YOUR KNOWLEDGE</h3>
-        <p style="font-size:13px;color:var(--dim);margin-top:2px">${Object.keys(stats.diag).length?'Re-map your knowledge — 25 questions across all certs. High scores unlock levels instantly':'Start here: 25 questions across all certs map what you know, place you at the right level, and unlock it'}</p></div>
-        <button class="btn" onclick="go({screen:'diag'})">${Object.keys(stats.diag).length?'Retest':'Test me'}</button>
-      </div></div>
-    <div class="panel" style="border:1px dashed #7BD88F">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-        <div><h3 style="font-family:var(--mono);color:#7BD88F;font-size:17px">⌨ COMMAND LAB</h3>
-        <p style="font-size:13px;color:var(--dim);margin-top:2px">Type real commands against real scenarios — Windows, IOS, Linux, PAN-OS · <span style="color:var(--text)">${cmdSolved}/${CMDS.length} solved</span></p></div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">${Object.entries(TRACKS).map(([k,tt])=>`<button class="btn ghost" style="border-color:${tt.hex};color:${tt.hex};font-size:10px;padding:8px 10px" onclick="go({screen:'cmdlab',track:'${k}'})">${tt.short}</button>`).join("")}</div>
-      </div></div>
-    <div class="panel" style="border:1px dashed var(--red)">
-      <div><h3 style="font-family:var(--mono);color:var(--red);font-size:17px">⚗ PRACTICE LABS</h3>
-      <p style="font-size:13px;color:var(--dim);margin-top:2px">Multi-step missions — build a config command by command · <span style="color:var(--text)">${labsDone}/${LABS.length} complete</span></p>
-      <div class="grid" style="margin-top:12px;gap:8px">
-        ${LABS.map(l=>{const tt=TRACKS[l.t];return `<button class="panel" style="text-align:left;cursor:pointer;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;border-left:3px solid ${tt.hex};color:var(--text)" onclick="go({screen:'lab',id:'${l.id}'})">
+
+    <div class="panel feat span2" style="border:1px solid rgba(255,179,71,.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 0 40px -18px rgba(255,179,71,.5)">
+      <div class="fh">${chip("linear-gradient(135deg,#FFC167,#FF8E3C)","◈")}
+        <div><h3>Test your knowledge</h3>
+        <p>${Object.keys(stats.diag).length?'Re-map your knowledge — 25 questions across all certs. High scores unlock levels instantly.':'Start here: 25 questions map what you know, place you at the right level, and unlock it.'}</p></div></div>
+      <div><button class="btn" onclick="go({screen:'diag'})">${Object.keys(stats.diag).length?'Retest':'Test me'}</button></div>
+    </div>
+
+    <div class="panel feat">
+      <div class="fh">${chip("rgba(63,214,198,.16)","◎")}
+        <div><h3 style="color:var(--cyan)">Smart Review</h3>
+        <p>Adaptive drill from your misses${weakCount?` · <span style="color:var(--amber)">${weakCount} weak items queued</span>`:''}</p></div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${featBtn("var(--cyan)","Start","go({screen:'smart'})")}
+        <button class="btn ghost" style="border-color:var(--red);color:var(--red);font-size:11px;padding:9px 14px" onclick="go({screen:'missed'})">Missed log</button></div>
+    </div>
+
+    <div class="panel feat">
+      <div class="fh">${chip("rgba(255,179,71,.16)","⚡")}
+        <div><h3 style="color:var(--amber)">Blitz mode</h3>
+        <p>60 seconds, all certs mixed. Best: <span style="color:var(--amber);font-family:var(--mono)">${stats.blitzBest}</span></p></div></div>
+      <div>${featBtn("var(--amber)","Launch","go({screen:'blitz'})")}</div>
+    </div>
+
+    <div class="panel feat">
+      <div class="fh">${chip("rgba(91,157,255,.16)","◫")}
+        <div><h3 style="color:var(--blue)">Scenario Lab</h3>
+        <p>Real-world cases with diagrams — the WHY behind exam questions · <span style="color:var(--text)">${Object.keys(stats.scen).length}/${SCEN.length}</span></p></div></div>
+      <div>${featBtn("var(--blue)","Open","go({screen:'scenList'})")}</div>
+    </div>
+
+    <div class="panel feat">
+      <div class="fh">${chip("rgba(176,140,255,.16)","⟲")}
+        <div><h3 style="color:var(--purple)">Explain it back</h3>
+        <p>Teach it out loud, compare to the model · <span style="color:var(--text)">${Object.keys(stats.expl).length}/${EXPLAIN.length} mastered</span></p></div></div>
+      <div>${featBtn("var(--purple)","Start","go({screen:'explain'})")}</div>
+    </div>
+
+    <div class="panel feat span2">
+      <div class="fh">${chip("rgba(123,216,143,.16)","⌨")}
+        <div><h3 style="color:var(--green)">Command Lab</h3>
+        <p>Type real commands against real scenarios — Windows, IOS, Linux, PAN-OS · <span style="color:var(--text)">${cmdSolved}/${CMDS.length} solved</span></p></div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${Object.entries(TRACKS).map(([k,tt])=>`<button class="btn ghost" style="border-color:${tt.hex};color:${tt.hex};font-size:10px;padding:8px 12px" onclick="go({screen:'cmdlab',track:'${k}'})">${tt.short}</button>`).join("")}</div>
+    </div>
+
+    <div class="panel feat span2">
+      <div class="fh">${chip("rgba(244,99,78,.16)","⚗")}
+        <div><h3 style="color:var(--red)">Practice Labs</h3>
+        <p>Multi-step missions — build a config command by command · <span style="color:var(--text)">${labsDone}/${LABS.length} complete</span></p></div></div>
+      <div class="grid" style="gap:8px">
+        ${LABS.map(l=>{const tt=TRACKS[l.t];return `<button class="panel" style="text-align:left;cursor:pointer;padding:12px 15px;display:flex;justify-content:space-between;align-items:center;gap:10px;border-left:3px solid ${tt.hex};color:var(--text)" onclick="go({screen:'lab',id:'${l.id}'})">
           <div><span style="font-family:var(--mono);font-size:10px;color:${tt.hex}">${tt.short}</span>
           <div style="font-size:14px;font-weight:600;margin-top:2px">${esc(l.title)}</div></div>
-          <span style="font-family:var(--mono);font-size:13px;color:${stats.labs[l.id]?'var(--cyan)':'var(--line)'}">${stats.labs[l.id]?'✓':l.steps.length+' steps'}</span></button>`;}).join("")}
-      </div></div></div>
-    <div class="panel" style="border:1px dashed var(--blue)">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-        <div><h3 style="font-family:var(--mono);color:var(--blue);font-size:17px">◫ SCENARIO LAB</h3>
-        <p style="font-size:13px;color:var(--dim);margin-top:2px">Real-world cases with diagrams — learn the WHY behind exam questions · <span style="color:var(--text)">${Object.keys(stats.scen).length}/${SCEN.length} complete</span></p></div>
-        <button class="btn" style="background:var(--blue);border-color:var(--blue)" onclick="go({screen:'scenList'})">Open</button>
-      </div></div>
-    <div class="panel" style="border:1px dashed var(--purple)">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-        <div><h3 style="font-family:var(--mono);color:var(--purple);font-size:17px">⟲ EXPLAIN IT BACK</h3>
-        <p style="font-size:13px;color:var(--dim);margin-top:2px">Teach the concept out loud, then compare to the model — the strongest recall there is · <span style="color:var(--text)">${Object.keys(stats.expl).length}/${EXPLAIN.length} mastered</span></p></div>
-        <button class="btn" style="background:var(--purple);border-color:var(--purple)" onclick="go({screen:'explain'})">Start</button>
-      </div></div>
-    <div class="panel" style="border:1px dashed var(--cyan)">
-      <div class="row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-        <div><h3 style="font-family:var(--mono);color:var(--cyan);font-size:17px">◎ SMART REVIEW</h3>
-        <p style="font-size:13px;color:var(--dim);margin-top:2px">Adaptive drill built from your misses and unseen questions${weakCount?` · <span style="color:var(--amber)">${weakCount} weak items queued</span>`:''}</p></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn ghost" style="border-color:var(--red);color:var(--red)" onclick="go({screen:'missed'})">Missed log</button>
-        <button class="btn" style="background:var(--cyan);border-color:var(--cyan)" onclick="go({screen:'smart'})">Start</button></div>
-      </div></div>
+          <span style="font-family:var(--mono);font-size:13px;color:${stats.labs[l.id]?'var(--cyan)':'var(--dim)'}">${stats.labs[l.id]?'✓':l.steps.length+' steps'}</span></button>`;}).join("")}
+      </div>
+    </div>
+
+    <div class="span2" style="margin-top:6px"><span class="eyebrow">Certification tracks</span></div>
     ${tracks}
-    <div class="panel" style="border:1px dashed var(--amber)">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-        <div><h3 style="font-family:var(--mono);color:var(--amber);font-size:17px">⚡ BLITZ MODE</h3>
-        <p style="font-size:13px;color:var(--dim);margin-top:2px">60 seconds, all tracks mixed. Best: <span style="color:var(--amber);font-family:var(--mono)">${stats.blitzBest}</span></p></div>
-        <button class="btn" onclick="go({screen:'blitz'})">Launch</button>
-      </div></div>
-  </div>
-  <div class="panel" style="align-self:start">${osiLadder()}
-    <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line);font-family:var(--mono);font-size:12px;color:var(--dim);display:grid;gap:6px">
-      <div>Daily streak <span style="color:var(--red);float:right">🔥 ${liveStreak()} (best ${stats.daily.best})</span></div>
-      <div>Best answer streak <span style="color:var(--cyan);float:right">${stats.bestStreak}</span></div>
-      <div>Scenarios <span style="color:var(--blue);float:right">${Object.keys(stats.scen).length}/${SCEN.length}</span></div>
-      <div>Concepts mastered <span style="color:var(--purple);float:right">${Object.keys(stats.expl).length}/${EXPLAIN.length}</span></div>
-      <div>Commands solved <span style="color:#7BD88F;float:right">${CMDS.filter(c=>stats.cmd[c.id]===true).length}/${CMDS.length}</span></div>
-      <div>Labs complete <span style="color:var(--red);float:right">${LABS.filter(l=>stats.labs[l.id]).length}/${LABS.length}</span></div>
-      <div>Question bank <span style="color:var(--text);float:right">${Q.length}</span></div>
-      <div>Flashcards <span style="color:var(--text);float:right">${CARDS.length}</span></div>
-      <div style="margin-top:4px">Correct +25 XP · streak ×5 +50 · exam pass +200</div>
-    </div></div></div>`;
+  </div>`;
+
+  app.innerHTML=header()+`<div class="home">${side}${main}</div>`;
 }
 
 /* ---------------- DIAGNOSTIC (placement pre-test) ---------------- */
@@ -1266,10 +1333,10 @@ function renderLevels(){
     <h2 class="screen-title" style="margin:4px 0 6px">Climb the ranks</h2>
     <p style="font-size:13px;color:var(--dim)">Passing a level takes all three: practice mastery ≥80% (correct twice in a row), the written check, and explaining concepts back. The knowledge test can place you higher and skip the grind.</p>
     <div class="grid" style="margin-top:16px">${rows}
-      ${allUn?`<button class="panel" style="text-align:left;cursor:pointer;display:flex;align-items:center;gap:14px;border:1px dashed ${t.hex};color:var(--text)" onclick="go({screen:'quiz',track:'${track}'})">
+      ${allUn?`<button class="panel" style="text-align:left;cursor:pointer;display:flex;align-items:center;gap:14px;border:1px solid ${t.hex};color:var(--text)" onclick="go({screen:'quiz',track:'${track}'})">
         <span style="font-family:var(--mono);font-size:12px;letter-spacing:1px;color:${t.hex};min-width:110px">ALL LEVELS</span>
         <span style="font-size:13px;color:var(--dim)">full ${pool.length}-question mix</span></button>`:
-      `<div class="panel" style="display:flex;align-items:center;gap:14px;border:1px dashed var(--line);opacity:.55"><span style="font-family:var(--mono);font-size:12px;color:var(--dim);min-width:110px">🔒 ALL LEVELS</span><span style="font-size:12px;color:var(--dim)">unlock every level first</span></div>`}
+      `<div class="panel" style="display:flex;align-items:center;gap:14px;border:1px solid var(--line);opacity:.55"><span style="font-family:var(--mono);font-size:12px;color:var(--dim);min-width:110px">🔒 ALL LEVELS</span><span style="font-size:12px;color:var(--dim)">unlock every level first</span></div>`}
     </div>
     <div class="nav" style="margin-top:20px"><button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="go({screen:'home'})">Home</button>
     <button class="btn ghost" style="border-color:var(--amber);color:var(--amber)" onclick="go({screen:'diag',track:'${track}'})">◈ Knowledge test</button></div></div>`;
