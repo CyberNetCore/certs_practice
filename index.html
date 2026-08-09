@@ -916,7 +916,7 @@ const KOTD=[
 let stats, qstats, S={screen:"home"};
 
 /* ============================ PROFILES ============================ */
-let profiles=[], currentPid=null, lg={mode:"list",pinFor:null,err:"",nm:"",pin:""};
+let profiles=[], currentPid=null, lg={mode:"list",pinFor:null,err:"",nm:"",pin:"",rem:false};
 const AVCOLORS=["#FFB347","#3FD6C6","#5B9DFF","#B08CFF","#7BD88F","#F4634E"];
 function hpin(s){let x=5381;for(const c of s)x=((x<<5)+x+c.charCodeAt(0))>>>0;return x.toString(36);}
 function loadProfiles(){
@@ -924,7 +924,8 @@ function loadProfiles(){
   currentPid=store.get("cc-current")||null;
   if(currentPid&&!profiles.find(p=>p.id===currentPid))currentPid=null;
 }
-function saveProfiles(){store.set("cc-profiles",JSON.stringify(profiles));store.set("cc-current",currentPid||"");}
+function saveProfiles(){store.set("cc-profiles",JSON.stringify(profiles));}
+function setRemember(on){store.set("cc-current",(on&&currentPid)?currentPid:"");}
 function pkey(k){return "cc:"+currentPid+":"+k;}
 function initials(n){return n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();}
 function defStats(){return{xp:0,bestStreak:0,blitzBest:0,perTrack:Object.fromEntries(Object.keys(TRACKS).map(k=>[k,{seen:0,correct:0}])),exams:{},daily:{last:null,streak:0,best:0},scen:{},expl:{},diag:{},cmd:{},kotd:{date:null},gate:{},labs:{},time:{date:null,ms:0,goal:90},days:{}};}
@@ -1036,7 +1037,8 @@ function header(){
     </button>
     <div style="display:flex;align-items:center;gap:10px">
       <div class="hdr-xp">${liveStreak()>0?`<span style="color:var(--red)">🔥${liveStreak()}d</span> · `:''}<span style="color:${todayMins()>=stats.time.goal?'var(--cyan)':'var(--dim)'}">⏱${todayMins()}m</span> · ${stats.xp} XP · L${layerOf(stats.xp)}</div>
-      ${(()=>{const p=profiles.find(x=>x.id===currentPid);return p?`<button onclick="go({screen:'stats'})" title="${esc(p.name)} — my stats" style="width:36px;height:36px;border-radius:50%;background:${p.color};color:#0B1220;border:none;cursor:pointer;font-weight:800;font-family:var(--mono);font-size:13px">${esc(initials(p.name))}</button>`:"";})()}
+      ${(()=>{const p=profiles.find(x=>x.id===currentPid);return p?`<button onclick="go({screen:'stats'})" title="${esc(p.name)} — my stats" style="width:36px;height:36px;border-radius:50%;background:${p.color};color:#0B1220;border:none;cursor:pointer;font-weight:800;font-family:var(--mono);font-size:13px">${esc(initials(p.name))}</button>
+      <button onclick="switchProfile()" title="Sign out" style="background:none;border:1px solid var(--line);border-radius:10px;color:var(--dim);cursor:pointer;font-size:13px;padding:8px 10px">⎋</button>`:"";})()}
     </div>
   </header>`;
 }
@@ -2031,11 +2033,15 @@ function renderLogin(){
     ${lg.mode==="list"?list:""}
     ${lg.mode==="list"?`<button class="btn ghost" style="border-color:var(--amber);color:var(--amber)" onclick="lgMode('create')">＋ ${profiles.length?"Add another profile":"Create your free profile"}</button>`:""}
     ${create}
-    <div class="stat center" style="color:var(--dim);line-height:1.6">Free forever · profiles and progress are stored privately on this device.<br>Each person gets their own XP, streaks, exams, and calendar.</div>
+    <button onclick="lgRem()" style="display:flex;align-items:center;gap:10px;justify-content:center;background:none;border:none;cursor:pointer;color:var(--dim);font-family:var(--mono);font-size:11.5px;padding:2px">
+      <span style="width:17px;height:17px;border-radius:5px;border:1px solid ${lg.rem?'var(--cyan)':'var(--line)'};background:${lg.rem?'rgba(63,214,198,.25)':'transparent'};display:inline-flex;align-items:center;justify-content:center;color:var(--cyan);font-size:11px">${lg.rem?'✓':''}</span>
+      Keep me signed in on this device</button>
+    <div class="stat center" style="color:var(--dim);line-height:1.6">Free forever · profiles and progress are stored privately on this device.<br>Each person gets their own XP, streaks, exams, and calendar.<br>Signing out just locks the view — your progress always stays saved.</div>
   </div>`;
   const f=document.getElementById(lg.mode==="create"?"nm-in":"pin-in");if(f&&f.focus)try{f.focus();}catch(e){}
 }
-window.lgMode=function(m){lg={mode:m,pinFor:null,err:"",nm:"",pin:""};render();};
+window.lgRem=function(){lg.rem=!lg.rem;render();};
+window.lgMode=function(m){lg={mode:m,pinFor:null,err:"",nm:"",pin:"",rem:lg.rem};render();};
 window.loginSelect=function(id){
   const p=profiles.find(x=>x.id===id);if(!p)return;
   if(p.pin){lg.pinFor=(lg.pinFor===id?null:id);lg.err="";render();return;}
@@ -2056,7 +2062,7 @@ window.loginCreate=function(){
   const id="p"+Date.now().toString(36);
   const p={id,name:nm,color:AVCOLORS[profiles.length%AVCOLORS.length],pin:pin?hpin(pin):null,created:Date.now()};
   const firstEver=profiles.length===0;
-  profiles.push(p);currentPid=id;saveProfiles();
+  profiles.push(p);currentPid=id;saveProfiles();setRemember(lg.rem);
   /* migrate pre-profile progress into the first profile so nothing is lost */
   if(firstEver&&store.get("cc-stats")){
     store.set(pkey("stats"),store.get("cc-stats"));
@@ -2065,8 +2071,8 @@ window.loginCreate=function(){
   load();lastActive=Date.now();sessionStart=Date.now();
   go({screen:"home"});
 };
-function enterProfile(id){currentPid=id;saveProfiles();load();lg={mode:"list",pinFor:null,err:"",nm:"",pin:""};lastActive=Date.now();sessionStart=Date.now();go({screen:"home"});}
-window.switchProfile=function(){save();currentPid=null;saveProfiles();lg={mode:"list",pinFor:null,err:"",nm:"",pin:""};render();window.scrollTo(0,0);};
+function enterProfile(id){currentPid=id;setRemember(lg.rem);load();lg={mode:"list",pinFor:null,err:"",nm:"",pin:"",rem:false};lastActive=Date.now();sessionStart=Date.now();go({screen:"home"});}
+window.switchProfile=function(){save();setRemember(false);currentPid=null;lg={mode:"list",pinFor:null,err:"",nm:"",pin:"",rem:false};render();window.scrollTo(0,0);};
 
 /* ---------------- STATS PAGE + ACTIVITY CALENDAR ---------------- */
 let stM=0;
