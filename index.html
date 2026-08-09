@@ -142,11 +142,11 @@ const store = {
 const OSI=["Physical","Data Link","Network","Transport","Session","Presentation","Application"];
 const XP_LAYER=250;
 const TRACKS={
-  netplus:{name:"Network+",short:"N+",color:"#5B9DFF",hex:"#5B9DFF",desc:"CompTIA fundamentals: OSI, cabling, IP, ports",pass:80,examQ:20,examMin:30},
-  ccna:{name:"CCNA",short:"CCNA",color:"#3FD6C6",hex:"#3FD6C6",desc:"Cisco routing, switching, VLANs, subnetting",pass:82,examQ:20,examMin:30},
-  secplus:{name:"Security+",short:"S+",color:"#B08CFF",hex:"#B08CFF",desc:"CompTIA security: crypto, attacks, controls",pass:83,examQ:20,examMin:30},
-  ccnp:{name:"CCNP",short:"CCNP",color:"#FFB347",hex:"#FFB347",desc:"Advanced routing: OSPF, BGP, redistribution",pass:82,examQ:20,examMin:35},
-  paloalto:{name:"Palo Alto",short:"PAN",color:"#7BD88F",hex:"#7BD88F",desc:"PAN-OS firewalls: zones, App-ID, NAT, Panorama (PCNSA/PCNSE)",pass:80,examQ:20,examMin:30},
+  netplus:{name:"Network+",short:"N+",color:"#5B9DFF",hex:"#5B9DFF",desc:"N10-009 — concepts, implementation, operations, security, troubleshooting",pass:80,examQ:40,examMin:45},
+  ccna:{name:"CCNA",short:"CCNA",color:"#3FD6C6",hex:"#3FD6C6",desc:"200-301 — fundamentals, access, IP connectivity, services, security, automation",pass:82,examQ:50,examMin:60},
+  secplus:{name:"Security+",short:"S+",color:"#B08CFF",hex:"#B08CFF",desc:"SY0-701 — concepts, threats, architecture, operations, governance",pass:83,examQ:40,examMin:45},
+  ccnp:{name:"CCNP",short:"CCNP",color:"#FFB347",hex:"#FFB347",desc:"ENCOR — architecture, infrastructure, assurance, security, automation",pass:82,examQ:35,examMin:45},
+  paloalto:{name:"Palo Alto",short:"PAN",color:"#7BD88F",hex:"#7BD88F",desc:"PCNSA/PCNSE — zones, App-ID, NAT, decryption, Panorama",pass:80,examQ:35,examMin:40},
 };
 const LV={1:{n:"Beginner",c:"#5B9DFF"},2:{n:"Intermediate",c:"#3FD6C6"},3:{n:"Advanced",c:"#FFB347"},4:{n:"Expert",c:"#F4634E"}};
 const lvOf=q=>q.lv||2;
@@ -329,6 +329,189 @@ const Q=[
 {t:"paloalto",lv:4,d:"App-ID",q:"Without decryption, how does App-ID classify most HTTPS applications?",a:["It can't at all","From TLS metadata — SNI and certificate details — often to the specific app, otherwise generically as 'ssl'","By packet sizes","By TTL values"],c:1,x:"The TLS handshake leaks the destination name (SNI/cert CN), enough to identify many apps. Content-level inspection inside the session still requires decryption."},
 {t:"paloalto",lv:4,d:"Threat Prevention",q:"A never-seen malicious file passes the firewall; minutes later the same file is blocked everywhere. What happened?",a:["An analyst wrote a signature","WildFire detonated the sample, verdicted it malicious, and pushed generated signatures to all subscribers","The file self-deleted","URL filtering caught up"],c:1,x:"That's the WildFire loop: unknown → sandbox detonation → verdict → auto-generated AV/DNS/URL protections distributed globally, typically within minutes."},
 ];
+
+/* ==================== BANK EXPANSION — batch 1 ====================
+   Original questions written against the published exam objectives.
+   Domain names match the official blueprints so coverage can be measured. */
+const QB1=[
+/* ---------------- NETWORK+ N10-009 ---------------- */
+{t:"netplus",lv:1,d:"Networking Concepts",q:"Which OSI layer does a frame's FCS (Frame Check Sequence) belong to?",a:["Layer 1","Layer 2","Layer 3","Layer 4"],c:1,x:"The FCS is the CRC trailer on an Ethernet frame — a Layer 2 construct. A failed FCS is what increments the CRC error counter you see on switch interfaces."},
+{t:"netplus",lv:1,d:"Networking Concepts",q:"Which protocol and port does LDAP over SSL (LDAPS) use?",a:["TCP 389","TCP 636","UDP 389","TCP 3268"],c:1,x:"LDAP is TCP 389; LDAPS is TCP 636. 3268 is the Global Catalog. Directory lookups failing only over TLS usually means 636 is blocked or the certificate is untrusted."},
+{t:"netplus",lv:1,d:"Networking Concepts",q:"What does a /32 prefix identify?",a:["A whole Class C network","A single host address","A broadcast domain","An unusable range"],c:1,x:"A /32 has no host bits, so it identifies exactly one address. Used for loopbacks, host routes, and ACL entries matching a single device."},
+{t:"netplus",lv:2,d:"Networking Concepts",q:"In a three-tier campus design, which layer aggregates access switches and enforces policy?",a:["Core","Distribution","Access","Edge"],c:1,x:"Distribution aggregates access-layer uplinks, performs inter-VLAN routing, and is where ACLs and route summarisation live. Core stays fast and simple; access connects endpoints."},
+{t:"netplus",lv:2,d:"Networking Concepts",q:"Which cloud model gives you an operating system to manage but no physical hardware responsibility?",a:["SaaS","PaaS","IaaS","FaaS"],c:2,x:"IaaS hands you virtual machines — you patch the OS and up. PaaS gives you a runtime without OS access; SaaS gives you only the application."},
+{t:"netplus",lv:2,d:"Network Implementation",q:"Which 802.11 standard first introduced OFDMA to improve efficiency in dense environments?",a:["802.11n","802.11ac","802.11ax","802.11g"],c:2,x:"802.11ax (Wi-Fi 6) added OFDMA and target wake time, letting one transmission serve multiple clients — the key advance for high-density areas rather than raw peak speed."},
+{t:"netplus",lv:2,d:"Network Implementation",q:"What does a wireless controller in a lightweight AP deployment handle?",a:["Nothing — APs are autonomous","Centralised configuration, RF management, and roaming","Only PoE delivery","DHCP for wired clients"],c:1,x:"Lightweight APs get their configuration from the WLC, which also handles channel/power assignment and coordinates client roaming. Autonomous APs each hold their own config."},
+{t:"netplus",lv:2,d:"Network Implementation",q:"Which connection type would you choose for a branch needing guaranteed bandwidth and an SLA?",a:["Cable broadband","DSL","Dedicated leased line / MPLS circuit","Satellite"],c:2,x:"Leased lines and MPLS circuits carry contractual SLAs and symmetric committed bandwidth. Consumer broadband is best-effort and asymmetric."},
+{t:"netplus",lv:3,d:"Network Implementation",q:"A SD-WAN deployment separates which two planes?",a:["Physical and virtual","Control plane (centralised) and data plane (at each site)","Access and distribution","Inbound and outbound"],c:1,x:"SD-WAN centralises policy in a controller (control plane) while edge devices forward traffic (data plane), letting you steer applications across broadband and MPLS by policy rather than static routes."},
+{t:"netplus",lv:2,d:"Network Operations",q:"What is the purpose of a network baseline?",a:["A backup of device configs","A record of normal performance to compare future measurements against","The minimum bandwidth in an SLA","A physical cable map"],c:1,x:"You cannot call something 'slow' without knowing normal. Baselines of utilisation, latency, and error rates turn vague complaints into measurable deviations."},
+{t:"netplus",lv:2,d:"Network Operations",q:"Which document defines who does what and when during a service outage?",a:["MOU","SLA","Incident response / escalation plan","AUP"],c:2,x:"The incident response and escalation plan defines roles, notification thresholds, and hand-off points. An SLA defines the promised service level to the customer."},
+{t:"netplus",lv:2,d:"Network Operations",q:"In change management, what is the purpose of a rollback plan?",a:["To document who approved the change","A pre-agreed way to restore service if the change fails","To schedule the maintenance window","To test in a lab first"],c:1,x:"Every change request should say how to undo it and how long that takes. Writing it before the window — not during the outage — is the entire point."},
+{t:"netplus",lv:3,d:"Network Operations",q:"Which monitoring method gives per-conversation traffic detail rather than interface totals?",a:["SNMP polling","NetFlow / IPFIX","ICMP polling","Syslog"],c:1,x:"SNMP tells you a link is 90% full; flow data tells you which hosts and applications are filling it. That distinction drives capacity planning and anomaly detection."},
+{t:"netplus",lv:2,d:"Network Security",q:"What does 802.1X use to carry authentication between supplicant and authentication server?",a:["HTTPS","EAP over LAN (EAPOL) and RADIUS","SNMP traps","Kerberos tickets"],c:1,x:"The supplicant speaks EAPOL to the switch, which relays the EAP messages inside RADIUS to the authentication server. The port passes no data traffic until authentication succeeds."},
+{t:"netplus",lv:2,d:"Network Security",q:"Which technique isolates guest wireless traffic from the corporate network at Layer 2?",a:["A separate SSID mapped to its own VLAN","Increasing AP transmit power","MAC filtering","Enabling WPA2 only"],c:0,x:"An SSID must map to a distinct VLAN for real separation — otherwise guests share the corporate broadcast domain regardless of the network name they joined."},
+{t:"netplus",lv:3,d:"Network Security",q:"A screened subnet and a network segment for unpatchable IoT devices are both examples of:",a:["Load balancing","Segmentation to limit blast radius","High availability","Redundancy"],c:1,x:"Segmentation contains a compromise. The measure of success is what a breached host CANNOT reach — not whether it can be breached."},
+{t:"netplus",lv:3,d:"Network Troubleshooting",q:"Users report intermittent drops. Interface counters show rising 'output drops' but no CRC errors. What does this indicate?",a:["A bad cable","Congestion — the egress queue is full","A duplex mismatch","A VLAN mismatch"],c:1,x:"Output drops mean the interface had more to send than it could, so the queue overflowed. That's congestion or a speed mismatch between segments — not physical corruption (which shows as CRC/input errors)."},
+{t:"netplus",lv:3,d:"Network Troubleshooting",q:"A user's PC has a valid IP and can reach local servers, but nothing on the internet. Ping to 8.8.8.8 fails. What do you check first?",a:["DNS servers","The default gateway setting and reachability","The subnet mask","The MAC address"],c:1,x:"Local traffic working proves L1–L3 within the subnet. Failing to leave it points at the gateway — wrong address, unreachable, or a routing problem upstream of it."},
+{t:"netplus",lv:3,d:"Network Troubleshooting",q:"Large file transfers hang while small pings succeed across a VPN. Which cause fits best?",a:["DNS misconfiguration","MTU / fragmentation problem",'Wrong VLAN',"Expired certificate"],c:1,x:"The tunnel's overhead reduces the usable MTU. Small packets pass; full-size packets need fragmentation, and if ICMP 'fragmentation needed' is blocked, PMTUD breaks and transfers stall."},
+{t:"netplus",lv:4,d:"Network Troubleshooting",q:"Half the clients on a subnet get addresses from the wrong scope after a contractor plugs in a device. What is the fix?",a:["Shorten the DHCP lease","Enable DHCP snooping and mark only the real server's port trusted","Add a second DHCP server","Increase the scope size"],c:1,x:"That's a rogue DHCP server. Snooping drops server replies arriving on untrusted ports, which both fixes this and prevents the man-in-the-middle version of the attack."},
+
+/* ---------------- CCNA 200-301 ---------------- */
+{t:"ccna",lv:1,d:"Network Fundamentals",q:"How many bits are in an IPv6 address?",a:["32","64","128","256"],c:2,x:"128 bits, written as eight groups of four hex digits. The first 64 bits are typically the network prefix and the last 64 the interface identifier."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which IPv6 address type is used as the destination for OSPFv3 hello packets?",a:["FF02::5","FF02::1","FE80::1","2001:db8::1"],c:0,x:"FF02::5 is the all-OSPF-routers multicast group (FF02::6 is all-DR routers). FF02::1 is all nodes, FF02::2 all routers."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"What does SLAAC allow an IPv6 host to do?",a:["Register in DNS automatically","Generate its own address from a router-advertised prefix","Obtain a lease from a DHCPv6 server","Translate IPv6 to IPv4"],c:1,x:"Stateless Address Autoconfiguration: the host takes the prefix from a Router Advertisement and builds the interface ID itself (EUI-64 or random) — no server keeps state."},
+{t:"ccna",lv:2,d:"Network Access",q:"Which switch port role does RSTP assign to the port with the best path to the root bridge?",a:["Designated","Root","Alternate","Backup"],c:1,x:"Each non-root switch elects one Root port — its best path toward the root bridge. Designated ports forward on each segment; Alternate is a blocked backup to the root."},
+{t:"ccna",lv:3,d:"Network Access",q:"How is the STP root bridge elected?",a:["Highest MAC address","Lowest bridge ID (priority, then MAC)","Fastest uplink","First switch booted"],c:1,x:"Bridge ID = priority + MAC. Lowest wins, and since priority defaults to 32768 everywhere, the oldest switch (lowest MAC) often wins by accident — which is why you set priority deliberately."},
+{t:"ccna",lv:3,d:"Network Access",q:"Which command makes a switch the STP root for VLAN 10 without hard-coding a priority value?",a:["spanning-tree vlan 10 root primary","spanning-tree vlan 10 priority 0","spanning-tree mode rapid-pvst","spanning-tree portfast default"],c:0,x:"'root primary' lowers the priority enough to win the current election (typically 24576). It is a one-time calculation, not a dynamic guarantee."},
+{t:"ccna",lv:2,d:"Network Access",q:"What does a WLC's 'split MAC' architecture mean?",a:["Two MAC addresses per AP","Time-sensitive 802.11 functions stay on the AP; management functions move to the controller","MAC filtering across two lists","Dual-band operation"],c:1,x:"Beaconing, acknowledgements and encryption stay local to the AP for timing reasons; association, authentication and RF management move to the controller."},
+{t:"ccna",lv:3,d:"IP Connectivity",q:"Which OSPF network type forms adjacencies without a DR/BDR election and is the default on serial point-to-point links?",a:["Broadcast","Point-to-point","Non-broadcast","Point-to-multipoint"],c:1,x:"Point-to-point assumes exactly two routers, so electing a designated router would be pointless overhead. Ethernet defaults to broadcast, which does elect one."},
+{t:"ccna",lv:3,d:"IP Connectivity",q:"Two OSPF routers are neighbours but routes are missing. 'show ip ospf neighbor' shows 2WAY/DROTHER on a broadcast segment. Is this a fault?",a:["Yes — it should always reach FULL","No — DROTHERs stay 2WAY with each other and go FULL only with the DR/BDR","Yes — the timers are wrong","No — but only in area 0"],c:1,x:"On a multi-access segment, non-DR routers deliberately stay 2WAY with each other and form full adjacencies only with the DR and BDR. That is normal, not a failure."},
+{t:"ccna",lv:2,d:"IP Connectivity",q:"What is the administrative distance of an EIGRP external route?",a:["90","110","170","200"],c:2,x:"Internal EIGRP is 90; routes redistributed into EIGRP from elsewhere carry AD 170, deliberately higher so internally learned paths win."},
+{t:"ccna",lv:3,d:"IP Connectivity",q:"Which command adds a backup static route that only installs if the primary route disappears?",a:["ip route 10.0.0.0 255.0.0.0 192.0.2.1","ip route 10.0.0.0 255.0.0.0 192.0.2.1 250","ip route 10.0.0.0 255.0.0.0 192.0.2.1 permanent","ip route 10.0.0.0 255.0.0.0 null0"],c:1,x:"The trailing 250 sets the administrative distance above any dynamic protocol, so the route floats — invisible until the better route is gone."},
+{t:"ccna",lv:2,d:"IP Services",q:"Which DHCP message does a client send to renew an existing lease?",a:["Discover (broadcast)","Request (unicast to the server)","Offer","Release"],c:1,x:"At 50% of the lease (T1), the client unicasts a Request straight to the leasing server. Discover is only used when it has no lease to renew."},
+{t:"ccna",lv:2,d:"IP Services",q:"What does the 'ip nat inside source list 1 interface Gi0/1 overload' command configure?",a:["Static NAT","Dynamic NAT with a pool","PAT — many inside hosts sharing the interface address","NAT64"],c:2,x:"'overload' is the keyword that turns it into Port Address Translation: many inside addresses multiplexed onto one outside address using unique source ports."},
+{t:"ccna",lv:2,d:"IP Services",q:"In a QoS policy, which per-hop behaviour is recommended for voice payload?",a:["AF41","EF (Expedited Forwarding, DSCP 46)","CS1","Default"],c:1,x:"EF gets strict-priority queuing for low latency and jitter. Video typically uses AF41; scavenger/bulk traffic uses CS1."},
+{t:"ccna",lv:1,d:"Security Fundamentals",q:"Which command encrypts all plaintext passwords in a Cisco running configuration?",a:["service password-encryption","enable secret","username admin secret","security passwords min-length"],c:0,x:"It applies weak type-7 encryption to plaintext passwords — enough to defeat shoulder-surfing, trivially reversible. 'enable secret' uses a proper hash and should be preferred."},
+{t:"ccna",lv:2,d:"Security Fundamentals",q:"What is the difference between AAA authentication and authorization?",a:["They are the same","Authentication proves who you are; authorization decides what you may do","Authentication is local, authorization is remote","Authorization happens first"],c:1,x:"Authentication validates identity, authorization grants specific privileges, and accounting records what was done. TACACS+ can separate all three; RADIUS combines authentication and authorization."},
+{t:"ccna",lv:3,d:"Security Fundamentals",q:"Which feature prevents an attacker from spoofing ARP replies once DHCP snooping is enabled?",a:["Port security","Dynamic ARP Inspection","BPDU Guard","Storm control"],c:1,x:"DAI validates ARP packets against the DHCP snooping binding table and drops mismatches — which is why snooping is a prerequisite for it."},
+{t:"ccna",lv:1,d:"Automation and Programmability",q:"Which data format uses key/value pairs inside braces and is the most common REST API response format?",a:["XML","JSON","YAML","CSV"],c:1,x:"JSON pairs keys with values in {} and lists in []. XML uses tags, YAML uses indentation and is favoured for human-edited config files like Ansible playbooks."},
+{t:"ccna",lv:2,d:"Automation and Programmability",q:"Which HTTP method would a REST API use to retrieve a configuration without changing it?",a:["GET","POST","PUT","DELETE"],c:0,x:"GET reads. POST creates, PUT replaces/updates, PATCH modifies part, DELETE removes. Safe operations are GET only — the rest change state."},
+{t:"ccna",lv:2,d:"Automation and Programmability",q:"What distinguishes Ansible from Puppet and Chef?",a:["It is agentless, pushing configuration over SSH/NETCONF","It requires an agent on every device","It only works on Linux","It cannot manage network devices"],c:0,x:"Ansible is agentless and push-based over SSH or NETCONF, which matters for network gear where installing an agent often isn't possible. Puppet and Chef are agent-based and pull-based."},
+{t:"ccna",lv:3,d:"Automation and Programmability",q:"In a controller-based (SDN) architecture, what does the southbound interface connect?",a:["Controller to network devices","Controller to applications","Device to device","User to portal"],c:0,x:"Southbound (NETCONF, RESTCONF, OpenFlow) runs from the controller down to devices. Northbound APIs face upward, letting applications ask the controller for network services."},
+{t:"ccna",lv:3,d:"Automation and Programmability",q:"What advantage does configuration management with an idempotent tool give you?",a:["Faster CLI typing","Running the same playbook repeatedly converges to the same state without side effects","Automatic backups","Encrypted transport"],c:1,x:"Idempotence means describing the desired end state, not the steps. Re-running is safe, which is what makes automated remediation and drift correction possible."},
+{t:"ccna",lv:4,d:"Automation and Programmability",q:"A REST call returns HTTP 401. What does that indicate?",a:["The resource does not exist","Authentication failed or is missing","The server errored","The request body was malformed"],c:1,x:"401 Unauthorized = credentials missing or rejected (403 means authenticated but not permitted, 404 not found, 400 bad request, 500 server error)."},
+
+/* ---------------- SECURITY+ SY0-701 ---------------- */
+{t:"secplus",lv:1,d:"General Security Concepts",q:"Which control category does an employee security-awareness programme fall under?",a:["Technical","Managerial","Operational","Physical"],c:2,x:"Operational controls are executed by people day to day — training, awareness, incident handling. Managerial controls are policies and risk decisions; technical controls are enforced by systems."},
+{t:"secplus",lv:2,d:"General Security Concepts",q:"What does non-repudiation provide?",a:["Confidentiality of data in transit","Proof that a specific party performed an action and cannot credibly deny it","Guaranteed availability","Faster authentication"],c:1,x:"Digital signatures and reliable audit logging deliver it: only the holder of the private key could have signed, so authorship cannot be disowned."},
+{t:"secplus",lv:2,d:"General Security Concepts",q:"In a Zero Trust architecture, what does the policy enforcement point do?",a:["Stores identities","Allows or blocks each request based on the policy decision point's verdict","Issues certificates","Encrypts data at rest"],c:1,x:"The policy engine/decision point evaluates identity, device posture, and context; the enforcement point applies that verdict to the actual traffic — per request, not per session."},
+{t:"secplus",lv:2,d:"Threats, Vulnerabilities and Mitigations",q:"An attacker plants malicious code on a site frequently visited by employees of one target company. This is:",a:["Whaling","A watering hole attack","Typosquatting","Smishing"],c:1,x:"Watering hole attacks compromise a third-party site the target population trusts, rather than attacking the target directly — which also evades their email filtering."},
+{t:"secplus",lv:2,d:"Threats, Vulnerabilities and Mitigations",q:"Malware that lies dormant until a specific date or condition is called a:",a:["Worm","Logic bomb","Rootkit","Keylogger"],c:1,x:"Logic bombs trigger on a condition — a date, a file change, an account being disabled. Classic insider-threat tooling, and invisible to behavioural detection until it fires."},
+{t:"secplus",lv:3,d:"Threats, Vulnerabilities and Mitigations",q:"Compromising a software vendor's build pipeline to reach their customers is which kind of attack?",a:["Supply chain attack","Privilege escalation","Session hijacking","Brute force"],c:0,x:"Supply chain attacks exploit the trust customers place in signed vendor updates. Defences are indirect: vendor risk assessment, SBOMs, segmentation, and behavioural monitoring."},
+{t:"secplus",lv:3,d:"Threats, Vulnerabilities and Mitigations",q:"Which vulnerability arises when an application checks a condition and then acts on it moments later?",a:["Buffer overflow","Race condition (TOCTOU)","SQL injection","XSS"],c:1,x:"Time-of-check to time-of-use: the state changes between validation and use. Fixes involve atomic operations or locking, not input validation."},
+{t:"secplus",lv:2,d:"Security Architecture",q:"What is the security benefit of containerisation over running applications directly on a host?",a:["Containers cannot be compromised","Process and filesystem isolation limits what a compromised app can reach","They encrypt all traffic","They remove the need for patching"],c:1,x:"Containers isolate namespaces and filesystems, shrinking blast radius — but they share the host kernel, so a kernel exploit still escapes. They are isolation, not a security boundary as strong as a VM."},
+{t:"secplus",lv:3,d:"Security Architecture",q:"Which deployment keeps sensitive workloads on-premises while bursting other workloads to a public provider?",a:["Private cloud","Hybrid cloud","Community cloud","SaaS"],c:1,x:"Hybrid combines both, and the security work is in the seam: consistent identity, encrypted interconnects, and clear data-residency rules for what may leave."},
+{t:"secplus",lv:3,d:"Security Architecture",q:"What is the purpose of a hardware security module (HSM)?",a:["Faster disk encryption","Generate, store and use private keys so they never exist in readable form outside it","Network intrusion prevention","Backup deduplication"],c:1,x:"Keys are generated inside and never exported; crypto operations happen on the module. That's what lets you prove a signing key was never copied."},
+{t:"secplus",lv:2,d:"Security Operations",q:"What is the first phase of the incident response process?",a:["Containment","Preparation","Eradication","Lessons learned"],c:1,x:"Preparation — plans, tooling, training, and contacts — happens before anything burns. Then detection/analysis, containment, eradication, recovery, and lessons learned."},
+{t:"secplus",lv:2,d:"Security Operations",q:"Why is 'order of volatility' important in digital forensics?",a:["It sets the legal retention period","It dictates collecting the most perishable evidence (memory, running processes) before disk","It defines who may access evidence","It ranks incident severity"],c:1,x:"Memory, network state and running processes vanish on reboot; disks survive. Collect in volatility order or you destroy evidence by investigating."},
+{t:"secplus",lv:3,d:"Security Operations",q:"A vulnerability scan reports a critical CVE on a system that is not actually exploitable in your configuration. What should you do?",a:["Ignore all future scan results","Validate, document it as a false positive or accepted risk, and add a compensating control if needed","Immediately take the system offline","Delete the finding"],c:1,x:"Validation is part of vulnerability management. Undocumented dismissals are indistinguishable from negligence at audit time — record the reasoning."},
+{t:"secplus",lv:3,d:"Security Operations",q:"What does SOAR add to a SIEM deployment?",a:["More log storage","Automated playbooks that respond to alerts without waiting for an analyst","Encryption of logs","Longer retention"],c:1,x:"Orchestration and automated response: enrich the alert, isolate the host, open the ticket. It exists because alert volume outpaces analyst headcount."},
+{t:"secplus",lv:4,d:"Security Operations",q:"Which log source best establishes whether a user actually authenticated, versus merely attempted to?",a:["Firewall logs","Authentication/identity provider logs (successful vs failed events)","DNS logs","NetFlow"],c:1,x:"Only the identity provider records the outcome. Firewall and flow data show connections; they cannot distinguish a successful login from a rejected one."},
+{t:"secplus",lv:2,d:"Security Program Management and Oversight",q:"What does a Business Impact Analysis (BIA) produce?",a:["A list of vulnerabilities","Recovery objectives (RTO/RPO) and criticality rankings for business processes","A network diagram","An incident report"],c:1,x:"The BIA identifies which processes matter, what an outage costs per hour, and therefore what recovery targets are justified. Continuity planning is built on it."},
+{t:"secplus",lv:2,d:"Security Program Management and Oversight",q:"Choosing to buy cyber-insurance is an example of which risk response?",a:["Risk avoidance","Risk transference","Risk acceptance","Risk mitigation"],c:1,x:"Transference shifts financial impact to a third party. Note it does not transfer reputational damage or regulatory responsibility — those stay with you."},
+{t:"secplus",lv:2,d:"Security Program Management and Oversight",q:"What is the difference between a policy and a procedure?",a:["They are synonyms","Policy states what must be achieved and why; procedure states the steps to do it","Policy is technical, procedure is legal","Procedures are approved by the board"],c:1,x:"Policies are stable, high-level, and management-approved. Procedures change often and describe execution. Standards sit between them, mandating specific technologies or settings."},
+{t:"secplus",lv:3,d:"Security Program Management and Oversight",q:"Which agreement type defines the security responsibilities of a vendor handling your customer data?",a:["MOU","Third-party/vendor agreement with security requirements and right-to-audit","AUP","NDA alone"],c:1,x:"Contracts must state security controls, breach notification timelines, and audit rights — otherwise you carry the regulatory liability with no leverage over the party holding the data."},
+{t:"secplus",lv:3,d:"Security Program Management and Oversight",q:"What is the purpose of separation of duties in a financial system?",a:["Faster processing","No single person can both initiate and approve a transaction","Reduced licensing costs","Simpler auditing"],c:1,x:"Splitting critical steps means fraud requires collusion. It pairs with mandatory vacations and job rotation, which surface schemes that need constant maintenance."},
+{t:"secplus",lv:4,d:"Security Program Management and Oversight",q:"An external auditor asks for evidence that access reviews occur quarterly. What best satisfies this?",a:["A policy stating reviews are quarterly","Signed review records with dates, reviewers, and resulting access changes","A screenshot of the user list","The administrator's assurance"],c:1,x:"Auditors test operating effectiveness, not intent. A policy proves the control was designed; dated artefacts prove it actually ran."},
+
+/* ---------------- CCNP ---------------- */
+{t:"ccnp",lv:2,d:"Architecture",q:"In a spine-leaf data centre fabric, how many hops separate any two leaf switches?",a:["One","Two (leaf → spine → leaf)","Three","It varies by VLAN"],c:1,x:"Every leaf connects to every spine, so east-west traffic is always exactly two hops — predictable latency, which is the whole reason the design replaced three-tier in data centres."},
+{t:"ccnp",lv:3,d:"Architecture",q:"What does VXLAN provide that traditional VLANs cannot?",a:["Faster switching","Layer 2 extension over a routed underlay, with a 24-bit segment ID","Better QoS","Automatic addressing"],c:1,x:"VXLAN tunnels L2 frames inside UDP, so segments span a routed fabric, and the 24-bit VNI allows ~16 million segments versus 4094 VLANs."},
+{t:"ccnp",lv:3,d:"Virtualization",q:"In an overlay/underlay model, what is the underlay responsible for?",a:["Carrying tenant traffic directly","Providing simple, stable IP reachability between tunnel endpoints","Enforcing tenant policy","Assigning VNIs"],c:1,x:"The underlay's only job is to get packets between VTEPs reliably — usually a simple routed IGP with ECMP. All tenancy and policy live in the overlay."},
+{t:"ccnp",lv:3,d:"Infrastructure",q:"Which OSPF LSA type is generated by an ABR to advertise the existence of an ASBR into another area?",a:["Type 3","Type 4","Type 5","Type 7"],c:1,x:"Type 4 (ASBR Summary) tells routers in other areas how to reach the ASBR, so they can resolve the next hop of Type 5 external routes."},
+{t:"ccnp",lv:4,d:"Infrastructure",q:"You need BGP to prefer a path with a longer AS-path. Which attribute lets you override the AS-path comparison for inbound routes?",a:["MED","Local preference (set higher via an inbound route-map)","Weight on the neighbour advertising it","Origin code"],c:1,x:"Local preference is compared before AS-path length, so setting it higher on the desired path wins regardless of path length. Weight would also work but only on the single router where it's set."},
+{t:"ccnp",lv:4,d:"Infrastructure",q:"What problem does BGP 'soft reconfiguration inbound' solve, and what is its cost?",a:["Faster convergence, no cost","Lets you reapply inbound policy without resetting the session, at the cost of storing an extra copy of received routes","Encrypts updates, uses CPU","Reduces prefix count, loses detail"],c:1,x:"It stores the pre-policy routes so policy changes can be re-evaluated locally. Route refresh (RFC 2918) achieves the same without the memory cost and is preferred on modern code."},
+{t:"ccnp",lv:3,d:"Infrastructure",q:"Which multicast protocol builds a shared tree rooted at a rendezvous point?",a:["PIM Dense Mode","PIM Sparse Mode","IGMP","MSDP"],c:1,x:"Sparse mode assumes few receivers and builds a shared tree at the RP, switching to a shortest-path tree once traffic justifies it. Dense mode floods then prunes."},
+{t:"ccnp",lv:3,d:"Network Assurance",q:"What does IP SLA measure that SNMP polling cannot?",a:["Interface utilisation","Synthetic end-to-end performance — latency, jitter and loss along an actual path","Device CPU","Config changes"],c:1,x:"IP SLA generates probe traffic to measure the user experience of a path, including one-way jitter for voice. SNMP only reports what a device counts locally."},
+{t:"ccnp",lv:3,d:"Network Assurance",q:"Which feature mirrors traffic from a source port to a destination port on a REMOTE switch?",a:["SPAN","RSPAN","ERSPAN over IP","Port mirroring"],c:2,x:"SPAN is local; RSPAN crosses switches using a dedicated VLAN; ERSPAN encapsulates in GRE so the capture can live anywhere routable — the usual choice for a central analyser."},
+{t:"ccnp",lv:2,d:"Security",q:"What does Control Plane Policing (CoPP) protect against?",a:["Data-plane congestion","Traffic destined to the router's own CPU overwhelming it","Routing loops","MAC flooding"],c:1,x:"CoPP rate-limits punted traffic — routing protocol packets, SSH, SNMP, ARP — so a flood aimed at the control plane cannot starve legitimate protocol keepalives."},
+{t:"ccnp",lv:4,d:"Security",q:"Why is MACsec (802.1AE) used alongside 802.1X in a campus?",a:["It replaces authentication","802.1X authenticates the device; MACsec encrypts the link once authenticated","It provides addressing","It manages VLANs"],c:1,x:"Authentication proves who connected; MACsec provides hop-by-hop Layer 2 encryption so a tap on that cable yields ciphertext."},
+{t:"ccnp",lv:3,d:"Automation",q:"What is the main advantage of NETCONF over screen-scraping the CLI?",a:["It is faster to type","Structured XML data with transactional configuration and validation","It works without credentials","It requires no network connectivity"],c:1,x:"NETCONF operates on structured data models (YANG) over SSH, supports candidate configs and commit/rollback semantics — the CLI has none of that guaranteed."},
+{t:"ccnp",lv:3,d:"Automation",q:"In YANG, what does a data model define?",a:["The transport protocol","The structure, types and constraints of configuration and state data","The encryption algorithm","The physical topology"],c:1,x:"YANG describes what data exists and its valid shape; NETCONF/RESTCONF are the protocols that carry it. Same model, multiple transports."},
+{t:"ccnp",lv:4,d:"Automation",q:"What does model-driven telemetry offer over SNMP polling?",a:["Lower device CPU because devices push subscribed data at high frequency, instead of being polled","Simpler MIBs","Better security by default","Backwards compatibility"],c:0,x:"Push-based streaming avoids the poll cycle entirely, scales to sub-second intervals, and delivers structured data — the basis of modern network analytics."},
+
+/* ---------------- PALO ALTO ---------------- */
+{t:"paloalto",lv:1,d:"Fundamentals",q:"What is a virtual system (vsys) on a Palo Alto firewall?",a:["A VM-Series instance","A logically separate firewall instance with its own policies and administrators on shared hardware","A backup configuration","A routing table"],c:1,x:"Multiple vsys let one chassis serve separate tenants or business units with independent rulebases, address objects and admins — while sharing the data plane."},
+{t:"paloalto",lv:2,d:"Policies",q:"What does a Security Profile Group do?",a:["Groups security rules","Bundles Antivirus, Anti-Spyware, Vulnerability, URL and File Blocking profiles for reuse on rules","Groups zones","Groups administrators"],c:1,x:"Attach one group instead of five profiles per rule. Setting a default group means new allow rules get inspection automatically rather than by memory."},
+{t:"paloalto",lv:2,d:"Policies",q:"What is an Address Group used for?",a:["NAT pools only","Grouping address objects — statically or dynamically by tag — for use in policy",'Interface assignment',"User mapping"],c:1,x:"Dynamic Address Groups match tags rather than fixed IPs, so membership can change from automation or an incident response action without editing the rulebase or committing."},
+{t:"paloalto",lv:3,d:"Policies",q:"Traffic matching an 'application-default' rule is dropped even though the app is allowed. What's the likely reason?",a:["The app is disabled","The application is running on a non-standard port","Logging is off","The zone is wrong"],c:1,x:"application-default permits the app only on its standard ports. Apps deliberately moved to odd ports fail this check — which is usually the intent, occasionally a false positive for internal software."},
+{t:"paloalto",lv:3,d:"Decryption",q:"Why would you configure a decryption exclusion for a banking or healthcare category?",a:["Performance only","Legal, privacy and certificate-pinning reasons — some traffic must not be intercepted","To increase throughput on the MGT plane","It is required for App-ID"],c:1,x:"Privacy regulations and pinned certificates both argue for exclusions. Pinned apps simply break under interception, so exclusions are operational as well as legal."},
+{t:"paloalto",lv:3,d:"User-ID",q:"Which User-ID method suits a Linux server farm with no domain membership?",a:["AD security log monitoring","The XML API or syslog integration to push mappings","Captive portal","Client probing"],c:1,x:"Non-domain systems don't generate AD logon events. The XML API or syslog parsing lets an authentication source feed IP-to-user mappings to the firewall directly."},
+{t:"paloalto",lv:2,d:"Threat Prevention",q:"What does the DNS Sinkhole feature accomplish?",a:["Blocks all DNS","Answers malicious domain lookups with a controlled address so infected internal hosts can be identified","Encrypts DNS","Caches DNS for speed"],c:1,x:"Without it, the firewall only sees the DNS server making queries. Sinkholing makes the infected client connect to your chosen address, revealing which host is compromised."},
+{t:"paloalto",lv:3,d:"Threat Prevention",q:"What is the practical difference between the 'reset-client' and 'drop' actions on a threat signature?",a:["None","drop discards silently; reset-client sends a TCP reset so the client fails fast instead of timing out","reset-client is slower","drop only applies to UDP"],c:1,x:"Silent drops leave users staring at a spinner until timeout. Resets give immediate failure — better user experience, at the cost of telling the sender something intervened."},
+{t:"paloalto",lv:4,d:"Architecture",q:"On a PA firewall, which plane would sustained heavy logging most affect?",a:["Data plane throughput","Management plane — logging, reporting and the UI","Both equally","Neither"],c:1,x:"The separation is the point: log writing and report generation run on the management plane, so a heavy report doesn't reduce packet forwarding. A sluggish UI during peak logging is expected behaviour."},
+{t:"paloalto",lv:4,d:"HA",q:"In active/passive HA, what happens to existing sessions during a failover?",a:["All sessions drop","Sessions synced over HA2 survive; some, like decrypted SSL sessions, may not","Only new sessions are affected","Sessions pause and resume after 60 seconds"],c:1,x:"HA2 replicates the session table so most flows continue. Decrypted sessions and some app-specific states are not synced and will re-establish — worth knowing before you promise zero impact."},
+{t:"paloalto",lv:3,d:"Panorama",q:"What is a template stack used for in Panorama?",a:["Stacking security rules","Layering multiple templates so common and site-specific network settings combine on one firewall","Backing up configs","Grouping administrators"],c:1,x:"Stacks let a global template (NTP, DNS, logging) combine with a regional or site template (interfaces, zones). Lower templates in the stack win on conflicts."},
+];
+Array.prototype.push.apply(Q,QB1);
+
+/* ==================== BANK EXPANSION — batch 2 (CCNA depth) ====================
+   Original questions, weighted to the CCNA 200-301 topic distribution. */
+const QB2=[
+/* ---- Network Fundamentals: encapsulation, Ethernet, cabling ---- */
+{t:"ccna",lv:1,d:"Network Fundamentals",q:"What is the correct name for the PDU at the transport layer?",a:["Frame","Packet","Segment","Bit"],c:2,x:"Layer 2 = frame, Layer 3 = packet, Layer 4 = segment (TCP) or datagram (UDP), Layer 1 = bits. Naming the PDU tells people which layer you're troubleshooting."},
+{t:"ccna",lv:1,d:"Network Fundamentals",q:"What is the purpose of the FCS field in an Ethernet frame?",a:["Identifies the destination MAC","Detects whether the frame was corrupted in transit","Carries the VLAN tag","Indicates the Layer 3 protocol"],c:1,x:"The Frame Check Sequence is a CRC over the frame. A mismatch means the frame arrived damaged — the switch drops it and increments the CRC error counter, which points at cabling, optics or interference."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which two Ethernet address types deliver one frame to multiple devices? (best answer)",a:["Unicast and broadcast","Broadcast and multicast","Unicast and multicast","Burned-in and unicast"],c:1,x:"Broadcast (FFFF.FFFF.FFFF) reaches everything in the VLAN; multicast reaches only devices that joined that group. Unicast is one-to-one; the burned-in address is just the factory unicast MAC."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Two switches are connected without auto-MDIX. Which cable is required?",a:["Straight-through","Crossover","Rollover","Coaxial"],c:1,x:"Like devices (switch–switch, router–router, PC–router) need a crossover so transmit lines meet receive lines. Unlike devices use straight-through. Auto-MDIX makes this moot on modern gear — but the exam still asks."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"How does CSMA/CD handle two devices transmitting simultaneously on a shared segment?",a:["It prevents it with a token","Devices detect the collision, send a jam signal, then retry after a random backoff","The switch buffers both","Frames are queued by priority"],c:1,x:"Detection, jam, random backoff, retransmit. It only matters on half-duplex segments — full-duplex switched links have no collision domain, which is why late collisions signal a duplex mismatch."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which field does a router decrement, causing a packet to eventually be discarded in a routing loop?",a:["Checksum","TTL","DSCP","Protocol"],c:1,x:"Each hop decrements TTL; at zero the packet dies and ICMP Time Exceeded returns. Ethernet frames have no equivalent — which is exactly why Layer 2 loops need STP."},
+
+/* ---- IPv4 addressing and subnetting (heaviest topic) ---- */
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"How many usable host addresses does a /29 provide?",a:["8","6","14","4"],c:1,x:"/29 leaves 3 host bits → 8 addresses, minus network and broadcast = 6 usable. /30 gives 2, the classic point-to-point link size."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which subnet mask matches a /21 prefix?",a:["255.255.240.0","255.255.248.0","255.255.252.0","255.255.254.0"],c:1,x:"/21 = 21 network bits: 255.255.248.0. Worth memorising the third-octet family — 128/192/224/240/248/252/254 for /17 through /23."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"What is the network address of 172.20.37.199/26?",a:["172.20.37.128","172.20.37.192","172.20.37.64","172.20.37.0"],c:1,x:"Block size for /26 is 64: boundaries at .0, .64, .128, .192. The multiple at or below 199 is 192 → network 172.20.37.192, broadcast .255."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"You need at least 12 subnets from 192.168.5.0/24 with the most hosts possible. Which mask?",a:["255.255.255.192","255.255.255.224","255.255.255.240","255.255.255.248"],c:2,x:"12 subnets needs 4 borrowed bits (2⁴=16 ≥ 12) → /28 = 255.255.255.240, giving 14 usable hosts each. 3 bits would only yield 8 subnets."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"Which address is a valid host address in 10.14.72.0/22?",a:["10.14.71.255","10.14.75.200","10.14.76.1","10.14.72.0"],c:1,x:"/22 blocks step by 4 in the third octet: 10.14.72.0 covers 72.0 through 75.255. So 10.14.75.200 is inside; .72.0 is the network, .71.255 is below the range, .76.1 is the next block."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"Using VLSM on 10.1.0.0/16, which prefix best fits a point-to-point WAN link?",a:["/24","/28","/30","/32"],c:2,x:"/30 gives exactly 2 usable addresses — no waste. (/31 is also valid for point-to-point per RFC 3021 and is increasingly used, but /30 remains the CCNA answer.)"},
+{t:"ccna",lv:4,d:"Network Fundamentals",q:"Which single summary route covers 172.16.8.0/24 through 172.16.11.0/24 and nothing more?",a:["172.16.8.0/21","172.16.8.0/22","172.16.0.0/16","172.16.8.0/23"],c:1,x:"Four contiguous /24s = 2 bits pulled back from /24 → /22. 172.16.8.0/22 spans 8.0–11.255 exactly. A /21 would also swallow 12.0–15.255."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which address range is reserved for APIPA/link-local IPv4?",a:["127.0.0.0/8","169.254.0.0/16","172.16.0.0/12","224.0.0.0/4"],c:1,x:"169.254.0.0/16 is self-assigned when DHCP fails. 127/8 is loopback, 172.16/12 is private, 224/4 is multicast."},
+
+/* ---- IPv6 ---- */
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"How is 2001:0db8:0000:0000:0000:ff00:0042:8329 correctly abbreviated?",a:["2001:db8::ff00:42:8329","2001:db8:0:0::ff00:42:8329","2001:db8::ff00::42:8329","2001:db8:ff00:42:8329"],c:0,x:"Drop leading zeros in each group and replace ONE run of all-zero groups with ::. Using :: twice is invalid because the length becomes ambiguous."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"Using EUI-64, what does a host insert into the middle of its MAC address to build the interface ID?",a:["FFFE","FFFF","0000","FE80"],c:0,x:"Split the 48-bit MAC, insert FFFE in the middle, then flip the 7th bit (the universal/local bit). The flipped bit is what turns e.g. 00 into 02 at the start."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which IPv6 address type always begins with FE80?",a:["Global unicast","Unique local","Link-local","Multicast"],c:2,x:"Link-local (FE80::/10) exists on every IPv6 interface automatically and is used for neighbour discovery and routing protocol adjacencies — routers use it as the next-hop address."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"Which protocol replaces ARP in IPv6?",a:["ICMPv6 Neighbor Discovery","ARPv6","RARP","IGMPv6"],c:0,x:"NDP uses ICMPv6 Neighbor Solicitation and Advertisement messages to resolve addresses, plus Router Solicitation/Advertisement for gateway discovery and SLAAC prefixes."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"Which IPv6 multicast address reaches all routers on the local link?",a:["FF02::1","FF02::2","FF02::5","FF05::1"],c:1,x:"FF02::1 = all nodes, FF02::2 = all routers, FF02::5/6 = OSPFv3. The FF02 prefix means link-local scope."},
+{t:"ccna",lv:4,d:"Network Fundamentals",q:"A host has both a SLAAC address and a DHCPv6 address. Which flags in the Router Advertisement made this possible?",a:["M flag only","A flag set (autoconfig) plus O or M flag for DHCPv6","No flags","L flag"],c:1,x:"The A flag permits SLAAC from the advertised prefix; the O flag adds 'other' info (DNS) from DHCPv6 while M means take the address itself from DHCPv6. Stateless-plus-DHCP is a common real deployment."},
+
+/* ---- Switching, VLANs, trunking ---- */
+{t:"ccna",lv:2,d:"Network Access",q:"How does a switch handle a frame with an unknown destination MAC?",a:["Drops it","Floods it out every port in the VLAN except the ingress port","Sends it to the default gateway","Buffers it until ARP resolves"],c:1,x:"Unknown-unicast flooding. The reply teaches the switch where that MAC lives, so it's a one-time cost — unless the MAC table is overflowing, which is what MAC-flooding attacks exploit."},
+{t:"ccna",lv:2,d:"Network Access",q:"Which command shows which VLAN each access port belongs to?",a:["show interfaces trunk","show vlan brief","show mac address-table","show ip interface brief"],c:1,x:"'show vlan brief' lists each VLAN with its member access ports. Trunk ports don't appear because they carry many VLANs — 'show interfaces trunk' covers those."},
+{t:"ccna",lv:3,d:"Network Access",q:"A trunk between two switches carries VLANs 1–10, but VLAN 5 traffic doesn't pass. What do you check?",a:["Duplex settings","Whether VLAN 5 exists on both switches and is in the allowed list","The native VLAN","Cable length"],c:1,x:"A VLAN must exist in the local database AND be permitted on the trunk. 'show interfaces trunk' shows both the allowed list and which VLANs are actually active and forwarding."},
+{t:"ccna",lv:3,d:"Network Access",q:"What happens if the native VLAN differs on each end of an 802.1Q trunk?",a:["The trunk won't come up","Untagged traffic leaks between two different VLANs, and CDP logs a mismatch","Only broadcasts fail","Traffic is double-tagged automatically"],c:1,x:"Each side treats untagged frames as its own native VLAN, silently bridging two VLANs together — a genuine security issue and the basis of VLAN-hopping attacks."},
+{t:"ccna",lv:3,d:"Network Access",q:"Which command limits a trunk to only VLANs 10, 20 and 30?",a:["switchport trunk native vlan 10","switchport trunk allowed vlan 10,20,30","switchport access vlan 10,20,30","switchport mode dynamic desirable"],c:1,x:"Pruning the allowed list reduces broadcast propagation and shrinks the attack surface. Beware 'switchport trunk allowed vlan add' versus the bare form — the latter replaces the whole list."},
+{t:"ccna",lv:2,d:"Network Access",q:"What is a voice VLAN used for?",a:["Encrypting calls","Letting an IP phone tag voice traffic into a separate VLAN while the attached PC stays untagged","Prioritising all traffic","Powering the phone"],c:1,x:"One cable carries two VLANs: tagged voice from the phone, untagged data from the PC behind it. QoS marking and separate addressing come along with it."},
+{t:"ccna",lv:4,d:"Network Access",q:"A double-tagging VLAN hopping attack relies on which condition?",a:["Port security disabled","The attacker's access VLAN matching the trunk's native VLAN","STP disabled","DHCP snooping disabled"],c:1,x:"The first tag is stripped by the ingress switch because it matches the native VLAN, leaving the inner tag to steer the frame into another VLAN. Setting the native VLAN to an unused ID defeats it."},
+
+/* ---- STP and EtherChannel ---- */
+{t:"ccna",lv:2,d:"Network Access",q:"What does BPDU Guard do when a BPDU arrives on a PortFast-enabled port?",a:["Ignores it","Puts the port into err-disabled state","Elects a new root","Blocks only that VLAN"],c:1,x:"A BPDU on an edge port means someone plugged in a switch. Err-disabling it protects the topology — and requires deliberate re-enabling, so the event gets noticed."},
+{t:"ccna",lv:3,d:"Network Access",q:"Which RSTP port state replaces 802.1D's Listening and Learning for edge ports?",a:["Forwarding immediately (edge port)","Blocking","Disabled","Discarding"],c:0,x:"RSTP collapses Disabled/Blocking/Listening into 'Discarding' and lets edge ports go straight to Forwarding — that's why RSTP converges in a second or two rather than 30–50."},
+{t:"ccna",lv:3,d:"Network Access",q:"Two switches have an EtherChannel configured with LACP 'passive' on both ends. What happens?",a:["The bundle forms","No bundle forms — neither side initiates","It forms but only one link is used","The ports err-disable"],c:1,x:"Passive only responds. At least one side must be 'active'. The PAgP equivalent trap is auto+auto, which also never forms."},
+{t:"ccna",lv:4,d:"Network Access",q:"An EtherChannel is up but one link carries nearly all traffic. What is the most likely cause?",a:["A bad cable","The load-balancing hash uses a field with little variation in this traffic mix","Duplex mismatch","STP is blocking the others"],c:1,x:"EtherChannel hashes per flow, not per packet. If everything shares a source/destination pair — say backups to one server — every frame hashes to the same member. Changing the hash input (src-dst-ip or including ports) is the fix."},
+
+/* ---- OSPF and routing ---- */
+{t:"ccna",lv:2,d:"IP Connectivity",q:"Which OSPF packet type is used to discover and maintain neighbour relationships?",a:["Hello","LSU","LSR","DBD"],c:0,x:"Hellos discover neighbours and act as keepalives. DBD summarises the database, LSR requests detail, LSU carries the LSAs, LSAck confirms receipt."},
+{t:"ccna",lv:3,d:"IP Connectivity",q:"An OSPF adjacency will not form between two routers on the same Ethernet segment. Which mismatch is NOT a cause?",a:["Different hello/dead timers","Different area IDs","Different router priorities","Different subnet masks"],c:2,x:"Priority only influences who becomes DR/BDR — it never blocks adjacency. Timers, area ID, subnet/mask, authentication, MTU and stub flags all do."},
+{t:"ccna",lv:3,d:"IP Connectivity",q:"How does OSPF calculate the cost of an interface by default?",a:["Hop count","Reference bandwidth ÷ interface bandwidth","Delay + bandwidth","Administrative distance"],c:1,x:"Default reference is 100 Mbps, so anything ≥100 Mbps floors at cost 1 — which is why every modern design raises 'auto-cost reference-bandwidth' consistently on all routers."},
+{t:"ccna",lv:3,d:"IP Connectivity",q:"Which command advertises only interface 10.1.1.1/30 into OSPF area 0?",a:["network 10.1.1.0 0.0.0.3 area 0","network 10.1.1.0 255.255.255.252 area 0","network 10.0.0.0 0.255.255.255 area 0","network 10.1.1.1 0.0.0.0 area 1"],c:0,x:"OSPF network statements take a wildcard mask: /30 inverts to 0.0.0.3. Note the statement matches INTERFACES, and the area in the statement is where that interface lands."},
+{t:"ccna",lv:2,d:"IP Connectivity",q:"A router has routes to 10.1.1.0/24 via OSPF and 10.1.0.0/16 via a static route. Where does traffic for 10.1.1.50 go?",a:["The static /16 — lower AD","The OSPF /24 — longer prefix match","Load balanced","Dropped"],c:1,x:"Prefix length is compared first, always. AD only breaks ties between routes of equal prefix length — a rule that catches people constantly."},
+{t:"ccna",lv:3,d:"IP Connectivity",q:"What does the 'O IA' code mean in a Cisco routing table?",a:["OSPF internal area route","OSPF inter-area route learned from an ABR","OSPF external route","OSPF invalid area"],c:1,x:"O = intra-area, O IA = inter-area (via Type 3 summary from an ABR), O E1/E2 = external redistributed routes (Type 5)."},
+
+/* ---- ACLs, NAT, services ---- */
+{t:"ccna",lv:3,d:"Security Fundamentals",q:"Where should a standard ACL be placed, and why?",a:["Close to the source, to save bandwidth","Close to the destination, because it only matches source addresses","On every interface","On the trunk"],c:1,x:"A standard ACL can only match source IP, so placing it near the source would block that source's traffic to every destination, not just the one you meant."},
+{t:"ccna",lv:3,d:"Security Fundamentals",q:"Which extended ACL entry permits HTTPS from 10.1.1.0/24 to server 10.2.2.5?",a:["permit tcp 10.1.1.0 0.0.0.255 host 10.2.2.5 eq 443","permit ip 10.1.1.0 0.0.0.255 host 10.2.2.5","permit tcp host 10.2.2.5 10.1.1.0 0.0.0.255 eq 443","permit udp 10.1.1.0 0.0.0.255 host 10.2.2.5 eq 443"],c:0,x:"Protocol tcp, source network with wildcard, destination host, then the destination port. Reversing source and destination is the most common mistake — and 443 is TCP, not UDP."},
+{t:"ccna",lv:4,d:"Security Fundamentals",q:"An ACL is applied inbound on Gi0/1 but traffic still passes. 'show access-lists' shows zero matches. What should you check?",a:["The ACL is too restrictive","Whether the ACL is applied to the right interface and direction","The switch's MAC table","The ACL's name capitalisation only"],c:1,x:"Zero matches means the traffic isn't hitting the ACL at all — usually the wrong interface, wrong direction (inbound vs outbound relative to the router), or traffic taking a different path."},
+{t:"ccna",lv:2,d:"IP Services",q:"In NAT terminology, what is the 'inside global' address?",a:["The private address of the internal host","The public address representing the internal host","The address of the external server","The gateway address"],c:1,x:"Inside local = private address of your host; inside global = how the outside world sees it after translation. Outside local/global describe the far end similarly."},
+{t:"ccna",lv:3,d:"IP Services",q:"Which command verifies active NAT translations and their ports?",a:["show ip nat statistics","show ip nat translations","show ip route","show running-config | include nat"],c:1,x:"'show ip nat translations' lists each mapping with inside local/global and outside addresses. 'statistics' gives totals and which interfaces are inside/outside."},
+{t:"ccna",lv:2,d:"IP Services",q:"What does a DHCP relay agent (ip helper-address) forward?",a:["Only DHCP Discover","Client broadcasts converted to unicast toward the configured server","Routing updates","ARP requests"],c:1,x:"It converts the client's broadcast into a unicast toward the server (and by default several other UDP services). Without it, remote subnets never reach a central DHCP server."},
+{t:"ccna",lv:3,d:"IP Services",q:"Which SNMP version provides authentication and encryption?",a:["v1","v2c","v3","All of them"],c:2,x:"v1 and v2c rely on plaintext community strings. v3 adds user-based authentication (authNoPriv) and encryption (authPriv) — the only version acceptable on a modern network."},
+{t:"ccna",lv:2,d:"IP Services",q:"What is the role of a syslog server's severity level 4?",a:["Emergency","Error","Warning","Debug"],c:2,x:"0 emergency, 1 alert, 2 critical, 3 error, 4 warning, 5 notification, 6 informational, 7 debugging. Setting a device to level 4 logs everything at warning severity and above."},
+
+/* ---- Wireless ---- */
+{t:"ccna",lv:2,d:"Network Access",q:"Which WLC deployment mode keeps the AP forwarding traffic locally instead of tunnelling it back?",a:["Local mode","FlexConnect","Monitor mode","Sniffer mode"],c:1,x:"FlexConnect switches traffic locally at the branch, so a WAN outage doesn't kill local wireless. Local mode tunnels everything to the controller through CAPWAP."},
+{t:"ccna",lv:2,d:"Network Access",q:"Which protocol carries traffic between a lightweight AP and its controller?",a:["CAPWAP","LWAPP only","GRE","802.1Q"],c:0,x:"CAPWAP uses UDP 5246 for control and 5247 for data, and it's the successor to Cisco's earlier LWAPP."},
+{t:"ccna",lv:3,d:"Network Access",q:"Which authentication method suits an enterprise WLAN needing per-user credentials?",a:["WPA2-Personal (PSK)","WPA2-Enterprise with 802.1X/RADIUS","Open with MAC filtering","WEP"],c:1,x:"Enterprise mode authenticates each user against RADIUS, so revoking one person doesn't mean re-keying the whole site — the core weakness of a shared PSK."},
+{t:"ccna",lv:3,d:"Network Access",q:"Why do the 5 GHz and 6 GHz bands generally outperform 2.4 GHz in an office?",a:["Longer range","More non-overlapping channels and less interference from other devices","Lower power draw","Better wall penetration"],c:1,x:"2.4 GHz has only three non-overlapping channels and shares space with microwaves, Bluetooth and legacy gear. Higher bands trade wall penetration for cleaner, wider channels."},
+
+/* ---- Automation ---- */
+{t:"ccna",lv:2,d:"Automation and Programmability",q:"Which characteristic distinguishes a traditional network from a controller-based one?",a:["Traditional uses fibre","Traditional devices each hold their own control plane; controller-based centralises policy","Controller-based has no CLI","Traditional cannot use OSPF"],c:1,x:"Centralising the control plane gives a single point for policy, intent and telemetry — at the cost of a new dependency on the controller's availability."},
+{t:"ccna",lv:3,d:"Automation and Programmability",q:"In JSON, how is a list of values represented?",a:["Curly braces {}","Square brackets []","Angle brackets <>","Indentation"],c:1,x:"[] denotes an array, {} an object of key/value pairs. Being able to read a JSON API response is now explicitly on the CCNA blueprint."},
+{t:"ccna",lv:3,d:"Automation and Programmability",q:"What does an Ansible playbook describe?",a:["The steps to run in order on a remote shell","The desired end state of managed devices, applied idempotently","A network diagram","A backup schedule"],c:1,x:"Playbooks are declarative: you state the intended configuration and Ansible converges the device to it. Re-running changes nothing if the state already matches."},
+{t:"ccna",lv:4,d:"Automation and Programmability",q:"Why is configuration drift a problem that automation is meant to solve?",a:["It uses more bandwidth","Devices diverge from the intended standard through manual changes, causing inconsistent behaviour and audit failures","It slows convergence","It breaks CDP"],c:1,x:"Manual fixes accumulate silently. Automation re-asserts the intended state on a schedule, turning drift into a detected, correctable event instead of a surprise during an outage."},
+];
+Array.prototype.push.apply(Q,QB2);
+
+
 
 /* ============================ FLASHCARDS ============================ */
 const CARDS=[
@@ -1667,6 +1850,271 @@ const QX=[
 ];
 Array.prototype.push.apply(Q,QX);
 
+/* ==================== CCNA batch 4 — gap-targeted ==================== */
+const QB4=[
+/* ---- WIRELESS (biggest gap: 47 stems in the source, 8 in the bank) ---- */
+{t:"ccna",lv:1,d:"Network Access",q:"In wireless terminology, what is a BSS?",a:["A group of APs sharing one SSID","A single AP and the clients associated with it","The wired distribution system","A roaming domain"],c:1,x:"Basic Service Set = one AP plus its clients. Several BSSs sharing an SSID over the distribution system form an ESS, which is what lets clients roam."},
+{t:"ccna",lv:2,d:"Network Access",q:"What is the BSSID?",a:["The network name","The AP radio's MAC address, identifying that specific BSS","The controller's IP","The VLAN ID"],c:1,x:"SSID is the human-readable name; BSSID is the radio's MAC. A site survey shows several BSSIDs sharing one SSID — that's how you tell APs apart."},
+{t:"ccna",lv:2,d:"Network Access",q:"Which wireless topology lets two clients communicate directly with no AP?",a:["Infrastructure mode","Ad hoc / IBSS","Mesh","Repeater"],c:1,x:"An Independent BSS has no AP and no distribution system. Useful for peer transfers, but with no central control it doesn't scale or secure well."},
+{t:"ccna",lv:2,d:"Network Access",q:"Which frame type does a client send to discover available WLANs actively?",a:["Beacon","Probe request","Association request","Authentication"],c:1,x:"APs periodically broadcast Beacons (passive scanning); clients send Probe Requests to actively ask who's out there. Association comes after authentication."},
+{t:"ccna",lv:3,d:"Network Access",q:"In what order does a client join a WLAN?",a:["Associate → authenticate → probe","Probe → authenticate → associate","Authenticate → probe → associate","Associate → probe → authenticate"],c:1,x:"Discover the network, complete 802.11 authentication, then associate. Any WPA key exchange happens after association."},
+{t:"ccna",lv:2,d:"Network Access",q:"How many non-overlapping 20 MHz channels does the 2.4 GHz band offer in North America?",a:["3","6","11","23"],c:0,x:"Channels 1, 6 and 11. The band has 11 usable channels but they overlap — using 1/6/11 is the only way to avoid adjacent-channel interference."},
+{t:"ccna",lv:3,d:"Network Access",q:"What is the trade-off of bonding two 20 MHz channels into a 40 MHz channel?",a:["More throughput but fewer available channels and more interference risk","Less throughput but better range","No trade-off","Lower latency only"],c:0,x:"Wider channels raise peak rate but consume spectrum. In dense deployments, 20 MHz channels with good reuse usually outperform 80 MHz channels that step on each other."},
+{t:"ccna",lv:2,d:"Network Access",q:"Which band does Wi-Fi 6E add support for?",a:["2.4 GHz","5 GHz","6 GHz","60 GHz"],c:2,x:"6E extends Wi-Fi 6 into the 6 GHz band, which brings far more clean spectrum and no legacy devices — at the cost of shorter range and needing 6E-capable clients."},
+{t:"ccna",lv:3,d:"Network Access",q:"What does a lightweight AP do if it loses contact with its WLC in local mode?",a:["Continues serving clients normally","Stops serving clients until the controller returns","Switches to FlexConnect automatically","Becomes the controller"],c:1,x:"Local mode tunnels all traffic through the WLC, so losing it means losing the WLAN. FlexConnect exists precisely so branch sites survive a WAN outage."},
+{t:"ccna",lv:3,d:"Network Access",q:"Which WLC port type carries client data traffic tagged for multiple VLANs?",a:["Service port","Distribution system port (trunk)","Console port","Redundancy port"],c:1,x:"The distribution system port trunks to the switch and carries management plus mapped client VLANs. The service port is out-of-band management only."},
+{t:"ccna",lv:2,d:"Network Access",q:"What is a WLAN profile on a WLC composed of?",a:["An SSID plus its security, QoS and VLAN interface mapping","Only the SSID name","The AP's IP address","A channel plan"],c:0,x:"The profile ties the broadcast name to policy: authentication method, encryption, QoS marking, and which dynamic interface (VLAN) clients land in."},
+{t:"ccna",lv:3,d:"Network Access",q:"Which security mode should you avoid on any modern WLAN?",a:["WPA3-Personal","WPA2-Enterprise","WEP","WPA2-Personal with a long passphrase"],c:2,x:"WEP's RC4 implementation and weak IVs are crackable in minutes. It appears in exams purely as the wrong answer — and occasionally on forgotten devices in real networks."},
+{t:"ccna",lv:3,d:"Network Access",q:"What improvement does WPA3-Personal's SAE handshake bring over WPA2's four-way handshake?",a:["Faster roaming","Resistance to offline dictionary attacks on captured handshakes","Longer range","Higher throughput"],c:1,x:"With WPA2, capturing the handshake lets an attacker guess offline forever. SAE makes each guess require a live exchange, so weak passphrases stop being instantly fatal."},
+{t:"ccna",lv:3,d:"Network Access",q:"In WPA2-Enterprise, which device holds the user database?",a:["The AP","The WLC","The RADIUS/AAA server","The client"],c:2,x:"The AP or WLC is only the authenticator, relaying EAP inside RADIUS. Credentials live on the AAA server, which is why disabling one account instantly revokes wireless access."},
+{t:"ccna",lv:2,d:"Network Access",q:"What causes the difference between a client's data rate and actual throughput on Wi-Fi?",a:["Encryption only","Shared airtime, overhead, retransmissions and interference","Cable length","VLAN tagging"],c:1,x:"Half-duplex shared medium plus management overhead means real throughput is typically 40–60% of the negotiated rate. Distant clients slow everyone by occupying airtime longer."},
+{t:"ccna",lv:4,d:"Network Access",q:"One legacy 802.11b client associates to a modern AP and everyone's performance drops. Why?",a:["It uses more bandwidth","Slow clients occupy airtime disproportionately, and protection mechanisms add overhead","It causes IP conflicts","It changes the channel"],c:1,x:"The 'sticky slow client' problem: transmitting the same data at 1 Mbps takes far longer than at 300 Mbps, and everyone waits. Disabling low data rates is the standard fix."},
+{t:"ccna",lv:3,d:"Network Access",q:"Which describes an AP in 'monitor mode'?",a:["It serves clients normally","It serves no clients and scans the air for rogues and interference","It bridges two buildings","It acts as a controller"],c:1,x:"A dedicated sensor. Local-mode APs also scan off-channel briefly, but a monitor AP does it full time — useful for rogue detection and spectrum analysis."},
+{t:"ccna",lv:3,d:"Network Access",q:"Why is a wireless site survey performed before deployment?",a:["To count users","To map coverage, interference and AP placement against real building materials","To choose SSIDs","To order cabling only"],c:1,x:"Predictive tools guess; a survey measures. Concrete, foil insulation, lift shafts and metal shelving all shape RF in ways no floor plan reveals."},
+{t:"ccna",lv:4,d:"Network Access",q:"Clients in one area show strong signal but poor throughput. Which measurement explains this best?",a:["RSSI","SNR — noise is high relative to signal","Channel width","SSID count"],c:1,x:"Strong signal buried in noise still fails. SNR, not raw RSSI, determines the data rate a client can sustain — and non-Wi-Fi interference is a common culprit."},
+{t:"ccna",lv:3,d:"Network Access",q:"What does a controller's RRM (Radio Resource Management) do?",a:["Assigns IP addresses","Automatically tunes channel and transmit power across APs","Encrypts traffic","Manages client certificates"],c:1,x:"RRM keeps neighbouring APs off the same channel and lowers power where cells overlap — continuously, as the RF environment changes."},
+
+/* ---- CABLING & PHYSICAL (15 stems in source) ---- */
+{t:"ccna",lv:1,d:"Network Fundamentals",q:"Which pins does 1000BASE-T use on an RJ-45 connector?",a:["1,2,3,6 only","All eight pins (all four pairs)","4,5,7,8 only","Two pins"],c:1,x:"Gigabit uses all four pairs bidirectionally. 10/100 uses only pairs on pins 1-2 and 3-6, which is why a damaged pair can leave a link working at 100 Mbps but not 1 Gbps."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"What does auto-MDIX do?",a:["Negotiates speed","Detects and corrects a straight-through/crossover mismatch automatically","Provides power","Sets duplex"],c:1,x:"It internally swaps transmit and receive pairs as needed, which is why cable type rarely matters on modern gear. Exams still test the manual rules."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which cable is used between a PC and a switch when auto-MDIX is unavailable?",a:["Crossover","Straight-through","Rollover","Coaxial"],c:1,x:"Unlike devices (PC↔switch, router↔switch) use straight-through. Like devices (switch↔switch, PC↔router, PC↔PC) need crossover."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which console settings are standard for a Cisco device?",a:["9600, 8 data bits, no parity, 1 stop bit","19200, 7, even, 2","115200, 8, odd, 1","9600, 7, even, 2"],c:0,x:"9600-8-N-1 is the default across virtually all Cisco gear. Some newer platforms support faster rates, but 9600 is what you fall back to when nothing appears on screen."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"What distinguishes single-mode from multimode fiber?",a:["Colour of the jacket","Core diameter and light source — single-mode uses a narrow core and laser for long distance","Connector type","Number of strands"],c:1,x:"Single-mode's ~9 µm core carries one light path for tens of kilometres; multimode's 50/62.5 µm core allows multiple paths, limiting distance through modal dispersion."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"A 10 Gb link between buildings 800 m apart requires which medium?",a:["Cat6a copper","Multimode fiber","Single-mode fiber","Coaxial"],c:2,x:"Copper stops at 100 m. Multimode at 10 Gb reaches roughly 300–400 m depending on grade; 800 m needs single-mode."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"What does an SFP module provide?",a:["Power over Ethernet","A swappable transceiver so one port can take different media and distances","Extra memory","VLAN tagging"],c:1,x:"Same physical port, different optics — 1G/10G, copper or fiber, short or long reach. Mismatched optics at each end is a common cause of a dark link."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"An interface shows 'down/down' with a good cable and a live device on the other end. What should you check next?",a:["ACLs","Speed/duplex mismatch forced on one side, or incompatible/failed transceiver","Routing protocol","VLAN assignment"],c:1,x:"down/down is physical. Hard-coded mismatched speed, a failing SFP, or the wrong optic type will all prevent the link ever coming up."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which PoE standard supplies roughly 30 W per port?",a:["802.3af","802.3at (PoE+)","802.3bt Type 4","802.3ab"],c:1,x:"802.3af ≈15 W, 802.3at (PoE+) ≈30 W, 802.3bt up to ~60–100 W. A PoE+ AP on an af-only switch may boot but disable a radio."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"Why do fiber runs avoid the interference problems of copper near industrial equipment?",a:["Better shielding","Light is unaffected by electromagnetic fields","Thicker jacket","Lower voltage"],c:1,x:"There's no electrical signal to induce noise into. Shielded copper reduces EMI; fiber removes the mechanism entirely — and also provides electrical isolation between buildings."},
+
+/* ---- IOS CLI, config files, device management ---- */
+{t:"ccna",lv:1,d:"Network Fundamentals",q:"Which command moves you from privileged EXEC into console line configuration?",a:["configure console","line console 0","mode console","terminal console"],c:1,x:"From global config: 'line console 0'. The 0 is the console's line number — there's only one on most devices."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"After configuring a hostname you reload without saving. What happens?",a:["The hostname persists","The device boots with the previous startup-config, losing the change","The device fails to boot","It prompts you at boot"],c:1,x:"Running-config lives in RAM only. This is the single most common lab-to-production mistake — and the reason a device 'reverted' after a power cut."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which file does a Cisco device load into RAM at boot to become the running configuration?",a:["The IOS image","startup-config from NVRAM","The VLAN database","The bootloader"],c:1,x:"Boot order: POST, load IOS from flash, then copy startup-config from NVRAM into RAM as the running-config. No startup-config means the setup wizard prompt."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"What does 'show version' tell you that helps plan an upgrade?",a:["Only uptime","IOS version, image filename, platform, uptime and last reload reason","The routing table","Interface errors"],c:1,x:"The last reload reason is quietly valuable — 'Power Failure or Unknown' explains a device that mysteriously lost its unsaved config."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"Which command displays only the lines of the running config containing 'interface'?",a:["show running-config all","show running-config | include interface","show interfaces brief","show config interface"],c:1,x:"The pipe supports include, exclude, begin and section. 'section interface' is even better — it shows each match plus its indented sub-commands."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"What is the effect of 'do show ip interface brief' typed in global configuration mode?",a:["It is rejected","It runs the EXEC command without leaving config mode","It saves the config","It reboots the device"],c:1,x:"'do' runs any EXEC command from within config mode — a small thing that saves an enormous amount of mode-hopping."},
+
+/* ---- MAC table & switching logic (16 stems) ---- */
+{t:"ccna",lv:2,d:"Network Access",q:"Which two pieces of information does a MAC address table entry contain?",a:["IP address and port","MAC address and the port (and VLAN) it was learned on","MAC address and IP address","Port and subnet mask"],c:1,x:"MAC, VLAN, port and type (dynamic or static). No IP information exists at Layer 2 — that's the ARP table's job on a router or host."},
+{t:"ccna",lv:2,d:"Network Access",q:"Where does a switch learn MAC addresses from?",a:["The destination MAC of arriving frames","The source MAC of arriving frames","ARP requests only","The DHCP server"],c:1,x:"Source addresses teach; destination addresses are looked up. That asymmetry is why a silent device stays unknown until it transmits something."},
+{t:"ccna",lv:3,d:"Network Access",q:"A switch receives a broadcast frame on port 5 in VLAN 20. What does it do?",a:["Drops it","Forwards it out all VLAN 20 ports except port 5","Forwards it out every port","Sends it to the router only"],c:1,x:"Flooded within the VLAN, never back out the ingress port. This is exactly why a Layer 2 loop is catastrophic — the frame circulates forever."},
+{t:"ccna",lv:3,d:"Network Access",q:"Why does a switch never forward a frame back out the port it arrived on?",a:["To save bandwidth","Basic loop avoidance — the sender already has the frame","Because of STP","Due to VLAN rules"],c:1,x:"Fundamental bridging behaviour, independent of STP. STP handles loops through *other* paths between switches."},
+{t:"ccna",lv:4,d:"Network Access",q:"An attacker floods a switch with thousands of bogus source MACs. What is the effect and the countermeasure?",a:["The switch reboots; use UPS","The MAC table overflows and the switch floods traffic like a hub; use port security","VLANs merge; use pruning","The uplink fails; use EtherChannel"],c:1,x:"CAM overflow turns a switch into a hub, letting the attacker sniff everything. Port security limiting MACs per port stops it at the edge."},
+{t:"ccna",lv:3,d:"Network Access",q:"Which command clears all dynamically learned MAC addresses?",a:["clear mac address-table dynamic","clear arp-cache","reload","clear counters"],c:0,x:"Useful after a device moves and the switch is still forwarding to the old port. Static and secure entries survive — only dynamic ones are flushed."},
+{t:"ccna",lv:3,d:"Network Access",q:"Two switches connect with two links and STP is disabled. What happens to a single broadcast?",a:["It is delivered once","It loops indefinitely and multiplies, saturating both links","It is dropped","It is rate-limited automatically"],c:1,x:"Ethernet has no TTL, so nothing removes the frame. Each pass duplicates it — a broadcast storm forms in seconds and CPU utilisation hits 100%."},
+
+/* ---- IPv6 (22 stems) ---- */
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which IPv6 header field replaces IPv4's TTL?",a:["Traffic class","Hop limit","Flow label","Next header"],c:1,x:"Same function, clearer name: decremented per hop, packet discarded at zero. IPv6 also dropped the header checksum, leaving error detection to lower and upper layers."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which prefix is reserved for IPv6 global unicast addresses currently allocated?",a:["FE80::/10","FC00::/7","2000::/3","FF00::/8"],c:2,x:"2000::/3 covers the globally routable range (what you see as 2001:, 2600:, etc.). FE80::/10 is link-local, FC00::/7 unique local, FF00::/8 multicast."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"How many IPv6 addresses will a typical interface have configured and active?",a:["Exactly one","At least two — a link-local plus one or more global/unique-local addresses","Only a global address","One per VLAN"],c:1,x:"Link-local is mandatory and automatic; global addresses are added by SLAAC, DHCPv6 or static configuration. Multiple global addresses on one interface is normal."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"Which IPv6 process replaces IPv4's gratuitous ARP for duplicate detection?",a:["SLAAC","Duplicate Address Detection using Neighbor Solicitation","Router Advertisement","DHCPv6"],c:1,x:"DAD sends an NS to the address it intends to use. A reply means someone already has it, and the address is not used."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which command enables IPv6 routing on a Cisco router?",a:["ip routing","ipv6 unicast-routing","ipv6 enable","ipv6 address autoconfig"],c:1,x:"Without it the router handles IPv6 for itself but won't forward between interfaces — a very common reason IPv6 'doesn't work' after addressing looks correct."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"What does 'ipv6 address 2001:db8:1::1/64' plus 'ipv6 enable' accomplish?",a:["Only a link-local address","A global address, and link-local is generated automatically anyway","Two global addresses","Nothing without DHCPv6"],c:1,x:"Configuring any IPv6 address automatically creates the link-local. 'ipv6 enable' alone gives you link-local only — enough for a routing adjacency."},
+{t:"ccna",lv:4,d:"Network Fundamentals",q:"A host has a valid IPv6 global address but cannot reach off-link destinations. Which is the most likely cause?",a:["Wrong prefix length","No default gateway learned — Router Advertisements are missing or blocked","DAD failed","Wrong DNS"],c:1,x:"IPv6 hosts learn the gateway from RAs, not from DHCP. If the router isn't sending them (or 'ipv6 unicast-routing' is off), the host has an address and nowhere to go."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"Which transition technology carries IPv6 packets across an IPv4-only network?",a:["NAT64","Dual stack","Tunnelling (e.g. 6to4, GRE, manual)","SLAAC"],c:2,x:"Tunnels encapsulate IPv6 inside IPv4. Dual stack runs both natively; NAT64 translates between them for IPv6-only clients reaching IPv4 servers."},
+
+/* ---- Subnetting depth (42 stems) ---- */
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which prefix length provides exactly 2 usable host addresses?",a:["/29","/30","/31","/32"],c:1,x:"/30 gives 4 addresses, 2 usable — the classic router-to-router link. /31 (RFC 3021) also works for point-to-point by dispensing with network and broadcast."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"What is the broadcast address of 192.168.100.64/28?",a:["192.168.100.79","192.168.100.80","192.168.100.95","192.168.100.71"],c:0,x:"/28 block size is 16: network .64, so the range is .64–.79, broadcast .79, usable .65–.78."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"Which mask allows at least 500 hosts per subnet?",a:["/22","/23","/24","/25"],c:1,x:"/23 leaves 9 host bits → 512 addresses, 510 usable. /24 gives only 254, which is short."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"Which of these is a valid subnet address for a /26 mask?",a:["10.1.1.100","10.1.1.128","10.1.1.200","10.1.1.30"],c:1,x:"/26 boundaries fall on multiples of 64: .0, .64, .128, .192. Only .128 is a network address; the others are hosts inside a subnet."},
+{t:"ccna",lv:4,d:"Network Fundamentals",q:"How many subnets and hosts result from applying /27 to a Class B network?",a:["2048 subnets, 30 hosts","2046 subnets, 32 hosts","512 subnets, 62 hosts","8192 subnets, 14 hosts"],c:0,x:"Class B is /16; /27 borrows 11 bits → 2¹¹ = 2048 subnets, with 5 host bits → 30 usable hosts each."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which address cannot be assigned to a host in 10.5.8.0/22?",a:["10.5.9.1","10.5.10.254","10.5.11.255","10.5.8.1"],c:2,x:"/22 spans 10.5.8.0–10.5.11.255, so .11.255 is the broadcast. Everything from 10.5.8.1 to 10.5.11.254 is usable."},
+
+/* ---- OSPF & routing depth ---- */
+{t:"ccna",lv:3,d:"IP Connectivity",q:"Which OSPF state indicates full database synchronisation with a neighbour?",a:["2WAY","EXCHANGE","LOADING","FULL"],c:3,x:"Down → Init → 2WAY → ExStart → Exchange → Loading → Full. Anything that stalls before Full has a specific meaning worth memorising for troubleshooting."},
+{t:"ccna",lv:3,d:"IP Connectivity",q:"Which router becomes the OSPF DR on a broadcast segment?",a:["Lowest router ID","Highest OSPF interface priority, then highest router ID","First to boot always","Lowest IP address"],c:1,x:"Priority (default 1) first, router ID as tiebreak. Priority 0 makes a router ineligible — the usual way to keep a small branch router out of the role."},
+{t:"ccna",lv:3,d:"IP Connectivity",q:"Why does OSPF elect a DR on multi-access segments?",a:["To speed up SPF","To avoid every router forming a full adjacency with every other, reducing LSA flooding","To assign IP addresses","To choose the root bridge"],c:1,x:"Without it, n routers would need n(n−1)/2 adjacencies. With a DR, each router adjacencies only with the DR and BDR."},
+{t:"ccna",lv:2,d:"IP Connectivity",q:"What does administrative distance represent?",a:["The metric of a route","The trustworthiness of the route's source when prefix lengths tie","Hop count","Link cost"],c:1,x:"It ranks sources, not paths: connected 0, static 1, eBGP 20, EIGRP 90, OSPF 110, RIP 120. Metric compares paths within one protocol."},
+{t:"ccna",lv:3,d:"IP Connectivity",q:"Which command would you use to see whether OSPF is enabled and which networks it advertises?",a:["show ip route ospf","show ip protocols","show ip ospf database","show running-config | section interface"],c:1,x:"'show ip protocols' summarises each routing protocol: process ID, router ID, networks, passive interfaces, neighbours and administrative distance in one screen."},
+{t:"ccna",lv:4,d:"IP Connectivity",q:"A router learns the same prefix via OSPF and a floating static with AD 200. Which appears in the routing table, and what happens if OSPF fails?",a:["Static; OSPF never installs","OSPF (AD 110); if it fails, the static installs automatically","Both simultaneously","Neither"],c:1,x:"The lower AD wins while it exists. The floating static waits in the wings — that's the entire point of raising its distance above the dynamic protocol's."},
+
+/* ---- ACLs, NAT, DHCP, services ---- */
+{t:"ccna",lv:3,d:"Security Fundamentals",q:"Which wildcard mask matches exactly one host?",a:["0.0.0.0","255.255.255.255","0.0.0.255","0.0.255.255"],c:0,x:"All zeros means every bit must match — equivalent to the 'host' keyword. All 255s (any) matches everything."},
+{t:"ccna",lv:3,d:"Security Fundamentals",q:"An ACL with only 'deny tcp any any eq 23' is applied to an interface. What is the effect?",a:["Only telnet is blocked","ALL traffic is blocked, because of the implicit deny at the end","Nothing is blocked","Only telnet is permitted"],c:1,x:"The implicit 'deny any' catches everything not explicitly permitted. You need a trailing 'permit ip any any' to allow the rest."},
+{t:"ccna",lv:2,d:"IP Services",q:"Which NAT type maps one private address to one public address permanently?",a:["Static NAT","Dynamic NAT","PAT","NAT64"],c:0,x:"Static NAT is a fixed one-to-one binding, used to publish a server so inbound connections always find it. Dynamic NAT draws from a pool as needed."},
+{t:"ccna",lv:3,d:"IP Services",q:"What happens when a dynamic NAT pool is exhausted?",a:["Traffic is queued","New inside hosts fail to translate and their traffic is dropped","Addresses are shared automatically","The router reboots"],c:1,x:"Without the 'overload' keyword there is no port multiplexing, so the pool size caps concurrent hosts. PAT is what removes that ceiling."},
+{t:"ccna",lv:3,d:"IP Services",q:"A DHCP client receives no address and the relay is configured correctly. What else should you verify?",a:["STP topology","That the DHCP server has a scope matching the relay's source subnet","The default gateway of the router","Duplex settings"],c:1,x:"The relay stamps the giaddr field with its interface address; the server selects the scope from it. No matching scope means the request is silently ignored."},
+{t:"ccna",lv:2,d:"IP Services",q:"Which is a valid reason to use a DHCP reservation instead of a static address?",a:["It is faster","The device keeps a consistent address while still receiving centrally managed options","It uses less bandwidth","It bypasses the gateway"],c:1,x:"Central management: DNS servers, domain name and gateway changes propagate automatically, unlike a statically configured host that quietly keeps stale settings."},
+
+/* ---- Security & automation topping up ---- */
+{t:"ccna",lv:3,d:"Security Fundamentals",q:"Which threat does 802.1X directly address?",a:["Malware execution","Unauthorised devices gaining network access by plugging into a port","Data exfiltration over DNS","Password reuse"],c:1,x:"It authenticates the endpoint before the port passes traffic. Combined with dynamic VLAN assignment, an unknown device can be dropped into a quarantine segment instead."},
+{t:"ccna",lv:2,d:"Security Fundamentals",q:"What is the purpose of a banner motd on a network device?",a:["Improves performance","Displays a legal warning to anyone connecting, supporting prosecution of unauthorised access","Sets the hostname","Encrypts the session"],c:1,x:"Avoid the word 'welcome' — a banner should state that access is restricted and monitored. It's a legal control, not a technical one."},
+{t:"ccna",lv:3,d:"Automation and Programmability",q:"Which is a disadvantage of a fully centralised control plane?",a:["Slower CLI","The controller becomes a single point of failure and a scaling bottleneck","No API access","Devices lose their MAC tables"],c:1,x:"Centralisation buys consistency and visibility but concentrates risk — which is why production controllers are clustered and devices usually keep a survivability mode."},
+{t:"ccna",lv:3,d:"Automation and Programmability",q:"What does an API key or token in a REST request provide?",a:["Encryption","Authentication of the caller","Compression","Routing"],c:1,x:"It proves who is calling; HTTPS provides the encryption. Tokens in URLs get logged by proxies — headers are the correct place for them."},
+{t:"ccna",lv:2,d:"Automation and Programmability",q:"Which statement about JSON key/value pairs is correct?",a:["Keys may be unquoted","Keys are strings in double quotes, and values may be strings, numbers, booleans, arrays, objects or null","Values must be strings","Comments are supported"],c:1,x:"JSON has no comment syntax — a frequent surprise when hand-editing. YAML does, which is part of why it's preferred for human-written config."},
+];
+Array.prototype.push.apply(Q,QB4);
+
+
+/* ==================== CCNA batch 5 — multi-select ("choose two/three") ==================== */
+const QB5=[
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which TWO statements about the FCS field in a data-link frame are true?",
+ a:["It detects whether the frame was corrupted in transit","It sits in the frame trailer, after the payload","It identifies the destination MAC address","It indicates which Layer 3 protocol is carried"],c:[0,1],
+ x:"The Frame Check Sequence is a CRC placed in the trailer. It detects corruption but cannot correct it, addresses nothing, and does not identify the payload type — that's the EtherType field in the header."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which THREE statements describe CSMA/CD?",
+ a:["Many devices can share a single link","A device waits for a quiet link before transmitting","Collisions are handled by retransmitting after a random backoff","Transmission rights are passed with a token","All frames must be the same size","It prevents Layer 2 loops"],c:[0,1,2],
+ x:"Carrier Sense (listen first), Multiple Access (shared medium), Collision Detection (jam, back off, retry). Token passing is Token Ring, loop prevention is STP, and Ethernet frame sizes vary."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which TWO Ethernet address types cause one frame to be delivered to more than one device on the LAN?",
+ a:["Broadcast address","Multicast address","Unicast address","Burned-in address"],c:[0,1],
+ x:"Broadcast (FFFF.FFFF.FFFF) reaches every device in the VLAN; multicast reaches only devices that joined that group. A burned-in address is simply the factory-assigned unicast MAC."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which TWO protocols operate at the TCP/IP transport layer?",
+ a:["TCP","UDP","IP","Ethernet","HTTP","SMTP"],c:[0,1],
+ x:"TCP and UDP are Layer 4. IP is Layer 3, Ethernet is Layer 2, and HTTP and SMTP are application-layer protocols carried over TCP."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"A router receives an Ethernet frame and forwards the packet out a serial link. Which TWO things happen?",
+ a:["The original Ethernet header and trailer are discarded","A new data-link header appropriate to the outgoing link is added","The IP header is removed before forwarding","The original MAC addresses are reused in the new frame"],c:[0,1],
+ x:"De-encapsulate, route, re-encapsulate. The Layer 2 header is rebuilt for each medium, while the IP header survives end to end — which is why source and destination IPs don't change through routing (absent NAT)."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"Without auto-MDIX, which TWO connections require a CROSSOVER cable?",
+ a:["Switch to switch","Router to router","PC to switch","Switch to router"],c:[0,1],
+ x:"Like devices transmit on the same pins, so transmit and receive must be crossed. PC-to-switch and switch-to-router are unlike devices and use straight-through."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which TWO are the default console connection settings on a Cisco device?",
+ a:["9600 baud","8 data bits, no parity, 1 stop bit","19200 baud","7 data bits, even parity, 2 stop bits"],c:[0,1],
+ x:"9600-8-N-1, no flow control. Wrong settings produce garbage characters rather than a blank screen — a useful distinction when a console session misbehaves."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"A hostname configured on Thursday is gone after a weekend power loss. Which TWO statements are true?",
+ a:["The change existed only in the running configuration in RAM","'copy running-config startup-config' would have preserved it","The 'end' command writes configuration to NVRAM","A power cycle always resets a device's hostname"],c:[0,1],
+ x:"Configuration applies immediately but lives in RAM. Only copying to NVRAM survives a reload; 'end' merely exits configuration mode."},
+{t:"ccna",lv:2,d:"Network Access",q:"Which TWO pieces of information does a switch store in its MAC address table?",
+ a:["MAC addresses learned from arriving frames","The switch port each address was learned on","Destination IP addresses","Transport-layer protocol numbers"],c:[0,1],
+ x:"MAC, port, VLAN and an age timer. IP addresses and port numbers are Layer 3/4 concepts a Layer 2 switch never consults when forwarding."},
+{t:"ccna",lv:3,d:"Network Access",q:"Which TWO features, enabled together on an access port, cause err-disable when someone connects a switch running STP?",
+ a:["PortFast","BPDU Guard","Root Guard","Storm control"],c:[0,1],
+ x:"BPDU Guard err-disables a port that receives a BPDU, and it's meaningful only on PortFast edge ports. Root Guard blocks superior BPDUs but leaves the port up in root-inconsistent state."},
+{t:"ccna",lv:3,d:"Network Access",q:"Which TWO RSTP port roles do NOT forward traffic in a stable topology?",
+ a:["Alternate","Backup","Root","Designated"],c:[0,1],
+ x:"Alternate is a backup path toward the root; Backup is a redundant path to the same segment (seen with hubs). Root and Designated both forward."},
+{t:"ccna",lv:3,d:"Network Access",q:"Which THREE values make up the bridge ID used to elect an STP root?",
+ a:["Bridge priority","The extended system ID (VLAN number)","The switch MAC address","Interface bandwidth","Device uptime"],c:[0,1,2],
+ x:"Bridge ID = priority + extended system ID + MAC, and lowest wins. Bandwidth determines path cost afterwards, not the election."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"Which TWO addresses in 192.168.24.0/28 cannot be assigned to a host?",
+ a:["192.168.24.0","192.168.24.15","192.168.24.1","192.168.24.14"],c:[0,1],
+ x:"/28 has block size 16: .0 is the network, .15 the broadcast. Usable range is .1 through .14."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"Which TWO statements about IPv6 link-local addresses are true?",
+ a:["They always begin with FE80::/10","Every IPv6-enabled interface has one automatically","They are routable across the internet","They must be assigned by DHCPv6"],c:[0,1],
+ x:"Link-local addresses are self-generated and never leave the link. Routers use them as next-hop addresses, which is why IPv6 routing tables show FE80 next hops."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which TWO ranges are RFC 1918 private IPv4 space?",
+ a:["10.0.0.0/8","172.16.0.0/12","169.254.0.0/16","127.0.0.0/8"],c:[0,1],
+ x:"The three private ranges are 10/8, 172.16/12 and 192.168/16. 169.254/16 is APIPA link-local and 127/8 is loopback."},
+{t:"ccna",lv:3,d:"IP Connectivity",q:"Which TWO parameters must match for two routers to become OSPF neighbours?",
+ a:["Hello and dead intervals","Area ID","Router priority","OSPF process ID"],c:[0,1],
+ x:"Timers, area, subnet/mask, authentication, stub flags and MTU must agree. Priority only affects DR election, and the process ID is locally significant."},
+{t:"ccna",lv:3,d:"IP Connectivity",q:"Which TWO route sources have a LOWER administrative distance than OSPF?",
+ a:["Static route (1)","EIGRP internal (90)","RIP (120)","EIGRP external (170)"],c:[0,1],
+ x:"OSPF is 110. Connected 0, static 1, eBGP 20 and EIGRP internal 90 beat it; RIP 120, EIGRP external 170 and iBGP 200 do not."},
+{t:"ccna",lv:4,d:"IP Connectivity",q:"Which TWO statements about a floating static route are true?",
+ a:["It is configured with an administrative distance higher than the primary route's","It stays out of the routing table until the primary route is withdrawn","It load balances with the primary route","It requires a routing protocol to function"],c:[0,1],
+ x:"A trailing AD value (e.g. 'ip route ... 250') makes it float — the standard way to add a backup path without running a protocol across it."},
+{t:"ccna",lv:2,d:"IP Services",q:"Which TWO DHCP messages are broadcast by the CLIENT during DORA?",
+ a:["Discover","Request","Offer","Acknowledge"],c:[0,1],
+ x:"The client broadcasts Discover and Request; the server sends Offer and Ack. Because those client messages are broadcasts, remote subnets need 'ip helper-address' on the gateway interface."},
+{t:"ccna",lv:3,d:"Security Fundamentals",q:"Which THREE steps are required before SSH will work on a Cisco device?",
+ a:["Configure a hostname and ip domain-name","Generate RSA keys","Create a local user or configure AAA","Configure a default route","Enable CDP"],c:[0,1,2],
+ x:"Key generation needs a fully qualified name, hence hostname plus domain. Then 'crypto key generate rsa', a user account, and 'transport input ssh' on the vty lines."},
+{t:"ccna",lv:3,d:"Security Fundamentals",q:"Which TWO statements about ACL processing are true?",
+ a:["Entries are evaluated top-down and processing stops at the first match","An implicit 'deny any' sits at the end of every ACL","The most specific entry wins regardless of order","ACLs filter router-generated traffic by default"],c:[0,1],
+ x:"Order is policy: a broad permit above a specific deny makes the deny unreachable. The invisible deny at the end is why an ACL containing only denies blocks everything else too."},
+{t:"ccna",lv:3,d:"Network Access",q:"Which TWO outcomes result from a port-security violation in the DEFAULT violation mode?",
+ a:["The port is placed in err-disabled state","The violation counter increments and a syslog message is generated","Offending frames are dropped while the port stays up","The port moves to a guest VLAN"],c:[0,1],
+ x:"Shutdown is the default. 'Restrict' drops and logs while staying up; 'protect' drops silently with no notification at all."},
+{t:"ccna",lv:2,d:"IP Services",q:"Which TWO problems does NTP synchronisation prevent?",
+ a:["Log timestamps that cannot be correlated across devices","Certificate and Kerberos failures caused by clock skew","Routing loops","MAC address table overflow"],c:[0,1],
+ x:"Time affects forensics and cryptography, not forwarding. A clock wrong by minutes can fail TLS validation outright."},
+{t:"ccna",lv:3,d:"Automation and Programmability",q:"Which TWO characteristics describe a REST API?",
+ a:["It is stateless — each request carries everything needed to process it","It uses HTTP methods such as GET, POST, PUT and DELETE","It requires an agent installed on the device","It can only return XML"],c:[0,1],
+ x:"Statelessness lets REST scale horizontally, since any server can handle any request. JSON is the common response format, though XML is also valid."},
+{t:"ccna",lv:3,d:"Automation and Programmability",q:"Which TWO statements about Ansible are true?",
+ a:["It is agentless, connecting over SSH or NETCONF","Playbooks are written in YAML and are idempotent","It requires an agent on every managed device","Playbooks are written in JSON"],c:[0,1],
+ x:"Agentless matters for network devices where installing software often isn't possible. Idempotence means re-running a playbook converges to the same state rather than repeating actions."},
+];
+Array.prototype.push.apply(Q,QB5);
+
+
+/* ==================== CCNA batch 3 ==================== */
+const QB3=[
+/* ---- Network Fundamentals ---- */
+{t:"ccna",lv:1,d:"Network Fundamentals",q:"Which device characteristic defines a collision domain?",a:["Each switch port is its own collision domain","Each VLAN is one collision domain","The whole switch is one collision domain","Routers extend collision domains"],c:0,x:"Every switch port is a separate collision domain. A hub makes all its ports one. Broadcast domains are the VLAN-level concept — don't mix the two up."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"What does a switch do with a frame whose destination MAC matches its own management address?",a:["Floods it","Forwards it to the gateway","Passes it up to its own CPU for processing","Drops it"],c:2,x:"Frames addressed to the switch itself (SSH, SNMP, CDP) are punted to the CPU rather than forwarded — which is exactly why control-plane policing matters on busy devices."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which statement about full-duplex Ethernet is true?",a:["It uses CSMA/CD","It doubles the collision domain size","It disables collision detection because send and receive are simultaneous","It requires a hub"],c:2,x:"Dedicated transmit and receive pairs mean collisions cannot occur, so CSMA/CD is switched off. Seeing collisions on a full-duplex link means the other end is actually half."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"A host sends to a destination in a different subnet. Which addresses appear in the frame it puts on the wire?",a:["Dest MAC = remote host, dest IP = remote host","Dest MAC = default gateway, dest IP = remote host","Dest MAC = gateway, dest IP = gateway","Dest MAC = broadcast, dest IP = remote host"],c:1,x:"Layer 2 addresses the next hop (the gateway); Layer 3 addresses the final destination. That distinction is the single most useful thing to hold in your head when reading a capture."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which TCP mechanism prevents a fast sender from overwhelming a slow receiver?",a:["Sequence numbers","Windowing / flow control","Checksums","Three-way handshake"],c:1,x:"The receiver advertises a window size, limiting unacknowledged data in flight. Congestion control (separate) reacts to loss in the network rather than to the receiver's capacity."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"Which port range is designated as well-known?",a:["0–1023","1024–49151","49152–65535","0–65535"],c:0,x:"0–1023 well-known, 1024–49151 registered, 49152–65535 dynamic/ephemeral. Client source ports come from the ephemeral range, which is why return traffic rules can't be pinned to a fixed port."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"Which is the last usable host address in 192.168.40.0/27?",a:["192.168.40.30","192.168.40.31","192.168.40.32","192.168.40.29"],c:0,x:"/27 has block size 32: network .0, broadcast .31, so usable is .1–.30. The last usable is always broadcast minus one."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"How many /26 subnets fit inside a /22?",a:["4","8","16","64"],c:2,x:"From /22 to /26 is 4 borrowed bits → 2⁴ = 16 subnets, each with 62 usable hosts."},
+{t:"ccna",lv:4,d:"Network Fundamentals",q:"A design needs subnets for 100, 50, 25 and 2 hosts from 172.16.0.0/24 using VLSM. Which allocation order avoids overlap?",a:["Smallest first","Largest first (/25, then /26, then /27, then /30)","Alphabetical by site","Any order works"],c:1,x:"Allocate the largest block first so it lands on a valid boundary, then carve smaller subnets from what remains. Starting small strands unusable gaps."},
+
+/* ---- Network Access ---- */
+{t:"ccna",lv:2,d:"Network Access",q:"How long does a switch keep a dynamically learned MAC address by default?",a:["30 seconds","300 seconds (5 minutes)","3600 seconds","Until reboot"],c:1,x:"The default aging timer is 300 seconds. A device that moves is relearned immediately from its next frame — aging only removes entries that go silent."},
+{t:"ccna",lv:3,d:"Network Access",q:"Which command shows whether an interface negotiated trunk or access mode and why?",a:["show vlan brief","show interfaces switchport","show mac address-table","show cdp neighbors"],c:1,x:"'show interfaces switchport' reveals administrative mode, operational mode, negotiation state, native VLAN and allowed list — the whole trunking picture for one port."},
+{t:"ccna",lv:3,d:"Network Access",q:"An access port with port security configured for 1 MAC goes err-disabled when a hub is attached. How do you recover it?",a:["Reload the switch","shutdown then no shutdown on the interface (after fixing the cause)","Clear the MAC table","Change the VLAN"],c:1,x:"Err-disable requires a manual bounce, or errdisable recovery configured with a timer. Bouncing it without removing the second device just repeats the violation."},
+{t:"ccna",lv:2,d:"Network Access",q:"What does 'switchport port-security maximum 2' allow?",a:["Two ports","Two secure MAC addresses on that port","Two VLANs","Two violations before shutdown"],c:1,x:"Common for an IP phone plus a PC behind it. Exceeding the maximum triggers the violation action — shutdown by default."},
+{t:"ccna",lv:3,d:"Network Access",q:"Which STP feature prevents a designated port from becoming a root port after an inferior BPDU arrives?",a:["BPDU Guard","Root Guard","Loop Guard","PortFast"],c:1,x:"Root Guard keeps a port from accepting a superior BPDU that would move the root — protecting your intended topology when a customer or lab switch is plugged in downstream."},
+{t:"ccna",lv:4,d:"Network Access",q:"Loop Guard protects against which failure that BPDU Guard does not?",a:["A rogue switch appearing on an access port","A blocking port stopping receiving BPDUs (e.g. unidirectional link) and wrongly transitioning to forwarding","VLAN mismatch","MAC flooding"],c:1,x:"If BPDUs stop arriving on a blocked port, STP assumes the path is gone and unblocks — creating a loop. Loop Guard puts it into loop-inconsistent state instead."},
+{t:"ccna",lv:2,d:"Network Access",q:"Which mode combination reliably forms a trunk without relying on negotiation?",a:["dynamic auto / dynamic auto","trunk / trunk with nonegotiate","access / dynamic desirable","dynamic auto / access"],c:1,x:"Hard-setting both ends and disabling DTP removes both the negotiation delay and the VLAN-hopping exposure that comes with dynamic modes."},
+{t:"ccna",lv:3,d:"Network Access",q:"On a Layer 3 switch, what does an SVI provide?",a:["A physical routed port","A virtual Layer 3 interface for a VLAN, acting as its gateway","A trunk link","A management VLAN only"],c:1,x:"'interface vlan 10' with an IP address makes the switch the gateway for VLAN 10 — inter-VLAN routing in hardware, replacing router-on-a-stick at scale. Requires 'ip routing' enabled."},
+{t:"ccna",lv:3,d:"Network Access",q:"An SVI stays down/down. Which condition is required for it to come up?",a:["A trunk must exist","At least one access port in that VLAN must be up, and the VLAN must exist and be active","The switch must be the root bridge","A default route must exist"],c:1,x:"An SVI needs the VLAN to exist, be active, and have at least one live member port (or an allowed trunk carrying it). Otherwise it has nothing to represent."},
+
+/* ---- IP Connectivity ---- */
+{t:"ccna",lv:2,d:"IP Connectivity",q:"What does the '*' next to a route in 'show ip route' indicate?",a:["The route is invalid","It is a candidate default route","The route is static","The route is being removed"],c:1,x:"S* marks the gateway of last resort. Without a candidate default, traffic to unknown destinations is dropped rather than forwarded."},
+{t:"ccna",lv:3,d:"IP Connectivity",q:"Two equal-cost OSPF paths exist to the same prefix. What does the router do by default?",a:["Uses the first learned","Installs both and load balances per destination (CEF)","Drops one","Alternates every 30 seconds"],c:1,x:"Up to four equal-cost paths install by default (maximum-paths). CEF then load-shares per flow, keeping packets of a conversation in order."},
+{t:"ccna",lv:3,d:"IP Connectivity",q:"Why would you configure a loopback interface as an OSPF router ID?",a:["It is faster","A loopback never goes down, so the router ID stays stable","It reduces cost","OSPF requires it"],c:1,x:"Physical interfaces can fail and change the elected ID mid-operation. A loopback is always up, giving a deterministic, documented ID."},
+{t:"ccna",lv:2,d:"IP Connectivity",q:"Which OSPF area must every other area connect to?",a:["Area 1","Area 0 (the backbone)","The highest-numbered area","Any area"],c:1,x:"All inter-area traffic transits the backbone, which prevents routing loops between areas. A discontiguous area needs a virtual link — a workaround, not a design goal."},
+{t:"ccna",lv:3,d:"IP Connectivity",q:"What is the effect of 'passive-interface GigabitEthernet0/1' under router ospf?",a:["The interface is shut down","The subnet is still advertised but no hellos are sent, so no adjacency forms there","OSPF ignores the subnet entirely","It becomes a stub area"],c:1,x:"Standard practice on user-facing segments: advertise the network without inviting an adjacency with whatever a user plugs in."},
+{t:"ccna",lv:4,d:"IP Connectivity",q:"A router shows an OSPF neighbour stuck in INIT. What does that indicate?",a:["MTU mismatch","Hellos are being received but the router does not see its own ID in the neighbour's hello — one-way communication","Authentication failure","Area mismatch"],c:1,x:"INIT means you hear them but they don't hear you — often a one-way ACL, an inbound filter, or a failing transmit path on one side."},
+{t:"ccna",lv:3,d:"IP Connectivity",q:"Which of these does NOT appear as a route source code in 'show ip route'?",a:["C — connected","L — local","S — static","T — trunk"],c:3,x:"C is connected, L is the local /32 for the interface's own address, S is static, O is OSPF, D is EIGRP, B is BGP. There is no trunk code — trunking is Layer 2."},
+
+/* ---- IP Services ---- */
+{t:"ccna",lv:2,d:"IP Services",q:"Which command configures a router as a DHCP server excluding the first ten addresses?",a:["ip dhcp excluded-address 10.1.1.1 10.1.1.10","ip dhcp pool exclude 10","ip dhcp reserve 10.1.1.1 10.1.1.10","dhcp exclude first 10"],c:0,x:"Exclusions are configured globally, before or after the pool. Forgetting to exclude the gateway and static server addresses is the classic cause of duplicate-address complaints."},
+{t:"ccna",lv:3,d:"IP Services",q:"What does the 'default-router' command inside a DHCP pool set?",a:["The router's own address","The gateway address handed to clients","The DNS server","The TFTP server"],c:1,x:"It populates option 3 in the lease. Get it wrong and clients get an address, reach local hosts, and fail at anything off-subnet — a very common ticket."},
+{t:"ccna",lv:3,d:"IP Services",q:"Which FHRP allows load sharing across multiple gateways simultaneously by default?",a:["HSRP","VRRP","GLBP","All of them"],c:2,x:"GLBP hands out different virtual MACs to different clients so multiple routers forward at once. HSRP and VRRP are active/standby — you can only load-share by splitting VLANs across groups."},
+{t:"ccna",lv:2,d:"IP Services",q:"Why is NTP important for troubleshooting?",a:["It speeds up routing convergence","Without synchronised clocks, correlating logs across devices is unreliable","It reduces bandwidth","It authenticates users"],c:1,x:"Skewed clocks make a timeline impossible to reconstruct, and they break certificate validation and Kerberos as well."},
+{t:"ccna",lv:3,d:"IP Services",q:"Which QoS mechanism drops or remarks traffic that exceeds a configured rate?",a:["Shaping","Policing","Queuing","Classification"],c:1,x:"Policing enforces a hard ceiling by dropping or remarking excess — bursty and lossy. Shaping buffers the excess and smooths it out, adding delay instead of loss."},
+{t:"ccna",lv:2,d:"IP Services",q:"What does SNMP use a 'trap' for?",a:["Polling a device for statistics","A device-initiated notification sent when an event occurs","Encrypting management traffic","Storing MIB data"],c:1,x:"Polling is the manager asking; traps are the device telling. Traps are unacknowledged — informs are the acknowledged variant, worth using for events you can't afford to miss."},
+
+/* ---- Security Fundamentals ---- */
+{t:"ccna",lv:2,d:"Security Fundamentals",q:"Which command creates a local user with an encrypted password?",a:["username admin password cisco","username admin secret cisco","username admin privilege 15","enable secret cisco"],c:1,x:"'secret' stores a hash; 'password' stores plaintext (or weak type-7 with service password-encryption). Always use secret for local accounts."},
+{t:"ccna",lv:3,d:"Security Fundamentals",q:"Which configuration is required before SSH will work on a Cisco device?",a:["Only a username","A hostname, a domain name, generated RSA keys, and a local or AAA user","Just 'transport input ssh'","An ACL"],c:1,x:"Key generation needs a fully qualified name, hence hostname plus ip domain-name. Then crypto key generate rsa, a user, and 'transport input ssh' on the vty lines."},
+{t:"ccna",lv:2,d:"Security Fundamentals",q:"What is the effect of 'transport input ssh' on the vty lines?",a:["Enables both telnet and SSH","Permits only SSH connections, blocking telnet","Disables remote access","Encrypts the console port"],c:1,x:"Restricting to SSH means credentials never cross the network in plaintext. Leaving telnet enabled is one of the most common audit findings on legacy gear."},
+{t:"ccna",lv:3,d:"Security Fundamentals",q:"Where should an extended ACL generally be applied?",a:["Close to the destination","Close to the source, to drop unwanted traffic before it consumes bandwidth","Only on trunk ports","On the loopback"],c:1,x:"Extended ACLs match source AND destination, so they can be precise near the source without collateral damage — the opposite of standard ACL placement."},
+{t:"ccna",lv:4,d:"Security Fundamentals",q:"Which statement about ACL processing order is true?",a:["The most specific entry always wins","Entries are evaluated top-down and processing stops at the first match","The last matching entry wins","Order does not matter"],c:1,x:"First match wins, so a broad permit above a specific deny makes the deny unreachable. New entries append to the end unless you use sequence numbers."},
+{t:"ccna",lv:3,d:"Security Fundamentals",q:"What does the 'login local' command on the vty lines do?",a:["Disables authentication","Authenticates using the local username database","Uses the enable password","Requires RADIUS"],c:1,x:"Without it, the device falls back to the line password or refuses connections. With AAA configured you'd use 'login authentication <list>' instead."},
+
+/* ---- Automation ---- */
+{t:"ccna",lv:2,d:"Automation and Programmability",q:"Which HTTP status code family indicates the client made an error?",a:["2xx","3xx","4xx","5xx"],c:2,x:"2xx success, 3xx redirect, 4xx client error (bad request, unauthorised, not found), 5xx server error. Knowing which side is at fault saves debugging time."},
+{t:"ccna",lv:2,d:"Automation and Programmability",q:"What makes a REST API 'stateless'?",a:["It stores no data","Each request carries everything needed to process it; the server keeps no session context","It cannot be encrypted","It only supports GET"],c:1,x:"Statelessness is what makes REST scale horizontally — any server can handle any request, since nothing is remembered between them."},
+{t:"ccna",lv:3,d:"Automation and Programmability",q:"Which format is most commonly used for Ansible playbooks?",a:["JSON","YAML","XML","CSV"],c:1,x:"YAML's indentation-based structure is easier for humans to write and diff. It's why a stray space breaks a playbook — indentation is syntax."},
+{t:"ccna",lv:3,d:"Automation and Programmability",q:"What is the benefit of storing device configurations in version control?",a:["Faster CLI access","Every change is attributed, diffable and revertible","Automatic encryption","Reduced bandwidth"],c:1,x:"Git turns 'who changed this and when' from an investigation into a one-line command, and makes rollback a known-good artefact rather than a memory exercise."},
+{t:"ccna",lv:4,d:"Automation and Programmability",q:"In an intent-based network, what does the controller do with declared intent?",a:["Logs it for review","Translates business intent into device configuration and continuously verifies the network still matches",'Emails the admin',"Nothing until manually applied"],c:1,x:"The assurance loop is the point: declare, translate, apply, then continuously verify and flag drift — rather than configuring once and hoping."},
+
+/* ---- Wireless / misc ---- */
+{t:"ccna",lv:2,d:"Network Access",q:"What is the purpose of a WLAN's SSID?",a:["Encrypting traffic","A network name clients use to identify and select the WLAN","Assigning IP addresses","Setting the channel"],c:1,x:"It's a label, not a security control. Hiding it stops casual discovery but any client that connects broadcasts it anyway — 'security by obscurity' at its most literal."},
+{t:"ccna",lv:3,d:"Network Access",q:"Two APs in the same area are both on channel 6. What is the result?",a:["Doubled throughput","Co-channel interference — they share airtime and both slow down","Automatic channel change","No effect"],c:1,x:"Devices on the same channel take turns rather than colliding, so throughput halves. Adjacent-channel overlap (e.g. 6 and 8) is worse — that produces actual corruption."},
+{t:"ccna",lv:3,d:"Network Access",q:"What does 'RF band steering' accomplish on a dual-band AP?",a:["Increases transmit power","Nudges capable clients onto 5 GHz to relieve the crowded 2.4 GHz band","Blocks legacy clients permanently","Merges both bands into one channel"],c:1,x:"Dual-band clients often default to 2.4 GHz for its range. Steering moves them up where there's more spectrum, leaving 2.4 GHz for devices that have no choice."},
+{t:"ccna",lv:2,d:"IP Services",q:"Which service translates a device's private address so it can reach the internet, AND is required when the ISP assigns one public IP?",a:["DHCP","PAT","DNS","NTP"],c:1,x:"Port Address Translation multiplexes an entire internal network behind a single public address using unique source ports."},
+{t:"ccna",lv:3,d:"IP Services",q:"Which command is needed on the interface facing the internet for NAT to function?",a:["ip nat inside","ip nat outside","ip nat enable","ip nat pool"],c:1,x:"NAT must know which side is which: 'ip nat inside' on the LAN-facing interface, 'ip nat outside' on the WAN. Missing one is why translations never appear."},
+{t:"ccna",lv:4,d:"IP Connectivity",q:"A ping to a directly connected neighbour succeeds but a ping sourced from a loopback fails. What is the most likely cause?",a:["The neighbour is down","The neighbour has no route back to the loopback subnet","ICMP is blocked","Duplex mismatch"],c:1,x:"Return path. The neighbour can reach the interface subnet because it's connected, but nothing has told it how to reach your loopback — advertise it or add a route."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"Which cable would you use to connect a laptop's serial adapter to a switch's console port?",a:["Straight-through Ethernet","Crossover","Rollover (console) cable","Fiber patch"],c:2,x:"The light-blue rollover cable reverses pin order end to end. Modern devices increasingly use USB console ports instead, but the RJ-45 console remains standard."},
+{t:"ccna",lv:2,d:"Network Fundamentals",q:"What information does CDP or LLDP reveal that helps document a network?",a:["Routing tables","Neighbouring device identity, platform, and the port on each side of the link","MAC address table","Configuration files"],c:1,x:"Walking neighbour tables device to device reconstructs the physical topology without touching a patch panel. Use LLDP in mixed-vendor environments."},
+{t:"ccna",lv:3,d:"Network Access",q:"What is the purpose of storm control on a switch port?",a:["Prevents STP loops","Rate-limits broadcast, multicast or unknown-unicast traffic to a threshold",'Blocks BPDUs',"Encrypts frames"],c:1,x:"It caps flooding traffic so one misbehaving host or a brief loop degrades rather than destroys the segment. It's a mitigation, not a substitute for STP protections."},
+{t:"ccna",lv:4,d:"Network Access",q:"Which condition would cause an EtherChannel to form but immediately suspend a member port?",a:["Different cable lengths","Mismatched speed, duplex, or allowed VLANs on that member","Different port numbers","Different switch models"],c:1,x:"All members must be configuration twins. 'show etherchannel summary' flags suspended ports with (s) — read the flags legend before assuming the bundle is healthy."},
+{t:"ccna",lv:3,d:"IP Services",q:"What does the 'ip helper-address' command forward besides DHCP?",a:["Only DHCP","Several UDP broadcast services by default, including TFTP, DNS and NetBIOS name service","Only TFTP","All broadcast traffic"],c:1,x:"By default it relays eight UDP services. On a segment with chatty legacy protocols this can generate unwanted traffic — trim it with 'no ip forward-protocol udp <port>'."},
+{t:"ccna",lv:2,d:"Security Fundamentals",q:"What is the main risk of leaving unused switch ports enabled and in the default VLAN?",a:["Increased power draw","Anyone plugging in gains network access in VLAN 1","Slower convergence","MAC table overflow"],c:1,x:"Standard hardening: shut unused ports, and assign them to an unused 'parking' VLAN so an accidental no-shut doesn't grant production access."},
+{t:"ccna",lv:3,d:"Network Fundamentals",q:"Which statement about MTU is correct?",a:["MTU applies only to Layer 2","The default Ethernet MTU is 1500 bytes of payload, and mismatches break OSPF adjacency and large transfers","MTU is always 9000","MTU only affects UDP"],c:1,x:"1500 is the standard payload size. Jumbo frames raise it but must match end to end — a mismatch shows up as OSPF stuck in EXSTART or as large transfers hanging."},
+{t:"ccna",lv:4,d:"IP Connectivity",q:"Traffic to one remote subnet fails while others work. 'show ip route' has the prefix, and the next hop pings fine. What next?",a:["Reload the router","Check for an ACL or a return-path route on the remote side","Reconfigure OSPF","Replace the cable"],c:1,x:"Forward path proven, so suspect the return path or filtering. Traceroute from both directions isolates whether packets die outbound or on the way back — asymmetry is invisible from one side."},
+];
+Array.prototype.push.apply(Q,QB3);
+
+
+/* Older questions used shorthand domain names; map everything onto the official
+   blueprint wording so exam reports and coverage stats aggregate correctly. */
+const DOMAIN_MAP={
+  netplus:{"Fundamentals":"Networking Concepts","Implementation":"Network Implementation",
+    "Operations":"Network Operations","Security":"Network Security","Troubleshooting":"Network Troubleshooting"},
+  ccna:{"Security":"Security Fundamentals"},
+  secplus:{"Concepts":"General Security Concepts","Threats":"Threats, Vulnerabilities and Mitigations",
+    "Architecture":"Security Architecture","Operations":"Security Operations"},
+};
+Q.forEach(q=>{const m=DOMAIN_MAP[q.t];if(m&&m[q.d])q.d=m[q.d];});
+
+
 /* ============================ KNOWLEDGE OF THE DAY ============================ */
 const KOTD=[
 {t:"netplus",k:"TTL isn't time — it's hops",v:"The IP TTL field decrements at each router; at zero the packet dies and an ICMP Time Exceeded goes back. Traceroute is just deliberate TTL abuse: TTL 1, 2, 3… mapping each hop from the error replies."},
@@ -1838,9 +2286,21 @@ function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Ma
    Returns a copy — the original bank is never mutated, so ids and reports stay stable. */
 function shuf(q){
   const order=shuffle(q.a.map((_,i)=>i));
-  return {...q, a:order.map(i=>q.a[i]), c:order.indexOf(q.c)};
+  const remap=i=>order.indexOf(i);
+  return {...q, a:order.map(i=>q.a[i]),
+    c:Array.isArray(q.c)?q.c.map(remap).sort((x,y)=>x-y):order.indexOf(q.c)};
 }
 const shufAll=list=>list.map(shuf);
+
+/* ---- multi-select ("choose two/three") support ----
+   A question with c as an ARRAY requires the exact set to be selected. */
+const isMulti=q=>Array.isArray(q.c);
+const sameSet=(a,b)=>{const x=[...(a||[])].sort((m,n)=>m-n),y=[...(b||[])].sort((m,n)=>m-n);
+  return x.length===y.length&&x.every((v,i)=>v===y[i]);};
+const isCorrect=(q,pick)=>isMulti(q)?sameSet(pick,q.c):pick===q.c;
+const answered=(q,pick)=>isMulti(q)?(Array.isArray(pick)&&pick.length>0):(pick!==null&&pick!==undefined);
+const correctText=q=>isMulti(q)?q.c.map(i=>q.a[i]).join("  ·  "):q.a[q.c];
+const multiHint=q=>isMulti(q)?` <span style="color:var(--amber);font-family:var(--mono);font-size:11px">(choose ${q.c.length})</span>`:"";
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function layerOf(xp){return Math.min(7,Math.floor(xp/XP_LAYER)+1);}
 
@@ -2025,7 +2485,7 @@ function diagDeck(track){
   let deck=[];
   tracks.forEach(k=>{
     const pool=Q.filter(q=>q.t===k);
-    const by={1:[],2:[],3:[],4:[]};pool.forEach(q=>by[lvOf(q)].push(q));
+    const by={1:[],2:[],3:[],4:[]};pool.filter(q=>!isMulti(q)).forEach(q=>by[lvOf(q)].push(q));
     const lvs=[1,2,3,4].filter(l=>by[l].length);
     if(track){
       lvs.forEach(l=>deck.push(...shuffle(by[l]).slice(0,3)));
@@ -2103,7 +2563,7 @@ function renderDiagReport(){
     v.misses.forEach(m=>{
       const rel=relFor(m);
       missHtml+=`<div class="miss-item" style="font-size:13px"><div>${esc(m.q)}</div>
-        <div class="x">Answer: <span style="color:var(--cyan)">${esc(m.a[m.c])}</span> — ${esc(m.x)}</div>
+        <div class="x">Answer: <span style="color:var(--cyan)">${esc(correctText(m))}</span> — ${esc(m.x)}</div>
         ${rel?`<button class="btn ghost" style="border-color:var(--blue);color:var(--blue);margin-top:8px;font-size:11px;padding:6px 10px" onclick="go({screen:'scen',id:'${rel.id}',back:'diag'})">◫ ${esc(rel.title)} →</button>`:''}</div>`;
     });
     secs+=`<div class="panel" style="margin-top:14px;border-left:3px solid ${t.hex}">
@@ -2181,7 +2641,7 @@ function renderLevels(){
 /* ---------------- WRITTEN LEVEL CHECK ---------------- */
 let gt={};
 function startGate(track,level){
-  const qs=shufAll(shuffle(Q.filter(q=>q.t===track&&lvOf(q)===level)).slice(0,10));
+  const qs=shufAll(shuffle(Q.filter(q=>q.t===track&&lvOf(q)===level&&!isMulti(q))).slice(0,10));
   gt={track,level,deck:qs,i:0,answers:[],report:null};
 }
 function renderGate(){
@@ -2191,7 +2651,7 @@ function renderGate(){
     r.misses.forEach(m=>{
       const rel=relFor(m);
       missHtml+=`<div class="miss-item" style="font-size:13px"><div>${esc(m.q)}</div>
-        <div class="x">Answer: <span style="color:var(--cyan)">${esc(m.a[m.c])}</span> — ${esc(m.x)}</div>
+        <div class="x">Answer: <span style="color:var(--cyan)">${esc(correctText(m))}</span> — ${esc(m.x)}</div>
         ${rel?`<button class="btn ghost" style="border-color:var(--blue);color:var(--blue);margin-top:8px;font-size:11px;padding:6px 10px" onclick="go({screen:'scen',id:'${rel.id}',back:'gate'})">◫ ${esc(rel.title)} →</button>`:''}</div>`;
     });
     app.innerHTML=header()+`<div style="max-width:680px;margin:0 auto">
@@ -2392,18 +2852,28 @@ function renderQuiz(){
   const t=quiz.smart?{name:"Smart Review",hex:"#3FD6C6"}:TRACKS[quiz.track];
   const lv=LV[lvOf(q)];
   const last=quiz.i>=quiz.deck.length-1&&quiz.picked!==null;
+  const multi=isMulti(q), shown=quiz.picked!==null;
   let opts="";
   q.a.forEach((opt,idx)=>{
     let cls="opt",mk=String.fromCharCode(65+idx);
-    if(quiz.picked!==null){
-      if(idx===q.c){cls+=" correct";mk="✓";}
-      else if(idx===quiz.picked){cls+=" wrong";mk="✗";}
-    }
-    opts+=`<button class="${cls}" onclick="pickQuiz(${idx})"><span class="mk">${mk}</span>${esc(opt)}</button>`;
+    if(shown){
+      const right=multi?q.c.includes(idx):idx===q.c;
+      const chose=multi?(quiz.sel||[]).includes(idx):idx===quiz.picked;
+      if(right){cls+=" correct";mk="✓";}
+      else if(chose){cls+=" wrong";mk="✗";}
+      else if(multi)mk="☐";
+    }else if(multi){mk=(quiz.sel||[]).includes(idx)?"☑":"☐"; if((quiz.sel||[]).includes(idx))cls+=" sel";}
+    opts+=`<button class="${cls}" onclick="${multi&&!shown?`toggleQuiz(${idx})`:`pickQuiz(${idx})`}"><span class="mk">${mk}</span>${esc(opt)}</button>`;
   });
+  if(multi&&!shown){
+    const n=(quiz.sel||[]).length;
+    opts+=`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:4px;flex-wrap:wrap">
+      <span class="stat" style="color:${n===q.c.length?'var(--cyan)':'var(--dim)'}">${n} of ${q.c.length} selected</span>
+      <button class="btn" ${n?"":"disabled"} style="background:${t.hex};border-color:${t.hex};font-size:11px;padding:9px 16px" onclick="submitQuiz()">Check answer</button></div>`;
+  }
   let explain="";
   if(quiz.picked!==null){
-    const ok=quiz.picked===q.c;
+    const ok=multi?isCorrect(q,quiz.sel):quiz.picked===q.c;
     const rel=!ok?relFor(q):null;
     explain=`<div class="explain ${ok?'':'bad'}"><span class="tag" style="color:${ok?'var(--cyan)':'var(--red)'}">${ok?'Correct':'Incorrect'}</span>
       <div style="margin-top:6px">${esc(q.x)}</div>
@@ -2413,16 +2883,39 @@ function renderQuiz(){
     <div class="qbar"><span class="eyebrow" style="color:${t.hex}">${t.name}${quiz.smart?` · ${TRACKS[q.t].short}`:''} · Q${quiz.i+1}/${quiz.deck.length}${quiz.smart?` · ${dueCount()} due`:''}</span>
     <span style="color:${lv.c};font-size:11px;letter-spacing:1px">${lv.n.toUpperCase()}</span>
     <span style="color:${quiz.streak>=3?'var(--amber)':'var(--dim)'}">streak ${quiz.streak}${quiz.streak>=3?' 🔥':''}</span></div>
-    <div class="panel"><div style="font-size:17px;line-height:1.5">${esc(q.q)}</div>
+    <div class="panel"><div style="font-size:17px;line-height:1.5">${esc(q.q)}${multiHint(q)}</div>
     <div class="grid" style="margin-top:18px">${opts}</div>${explain}</div>
     <div class="nav"><button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="go({screen:'home'})">Exit</button>
     ${quiz.picked!==null&&!last?`<button class="btn" style="background:${t.hex};border-color:${t.hex}" onclick="nextQuiz()">Next →</button>`:''}
     ${last?`<div style="display:flex;gap:10px;align-items:center"><span class="stat" style="font-size:13px;color:var(--text)">Run complete: ${quiz.score}/${quiz.deck.length}</span>
       <button class="btn" style="background:${t.hex};border-color:${t.hex}" onclick="go({screen:'home'})">Debrief</button></div>`:''}</div></div>`;
 }
+window.toggleQuiz=function(idx){
+  if(quiz.picked!==null)return;
+  quiz.sel=quiz.sel||[];
+  const at=quiz.sel.indexOf(idx);
+  if(at>=0)quiz.sel.splice(at,1); else quiz.sel.push(idx);
+  render();
+};
+window.submitQuiz=function(){
+  const q=quiz.deck[quiz.i];
+  if(!isMulti(q)||quiz.picked!==null||!(quiz.sel||[]).length)return;
+  scoreQuiz(q,isCorrect(q,quiz.sel));
+};
+function scoreQuiz(q,correct){
+  quiz.picked="done";
+  quiz.streak=correct?quiz.streak+1:0;
+  if(correct)quiz.score++;
+  stats.bestStreak=Math.max(stats.bestStreak,quiz.streak);
+  if(correct)stats.xp+=25+(quiz.streak>0&&quiz.streak%5===0?50:0);
+  recordAnswer(q,correct);
+  render();
+}
 window.pickQuiz=function(idx){
   if(quiz.picked!==null)return;
-  const q=quiz.deck[quiz.i], correct=idx===q.c;
+  const q=quiz.deck[quiz.i];
+  if(isMulti(q))return window.toggleQuiz(idx);
+  const correct=idx===q.c;
   quiz.picked=idx;
   quiz.streak=correct?quiz.streak+1:0;
   if(correct)quiz.score++;
@@ -2431,7 +2924,7 @@ window.pickQuiz=function(idx){
   recordAnswer(q,correct);
   render();
 };
-window.nextQuiz=function(){touchTime();save();quiz.i++;quiz.picked=null;render();};
+window.nextQuiz=function(){touchTime();save();quiz.i++;quiz.picked=null;quiz.sel=[];render();};
 
 /* ---------------- FLASHCARDS ---------------- */
 let fc={};
@@ -2464,7 +2957,7 @@ window.gradeCard=function(knew){
 let bz={},bzTimer=null;
 function startBlitz(){
   clearInterval(bzTimer);
-  bz={deck:shufAll(shuffle(Q)),i:0,score:0,time:60,over:false};
+  bz={deck:shufAll(shuffle(Q.filter(q=>!isMulti(q)))),i:0,score:0,time:60,over:false};
   bzTimer=setInterval(()=>{
     bz.time--;
     if(bz.time<=0){clearInterval(bzTimer);bz.over=true;
@@ -2550,25 +3043,29 @@ function startExam(track){
 function fmtTime(s){return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");}
 function renderExam(){
   const t=TRACKS[ex.track], q=ex.deck[ex.i];
+  const multi=isMulti(q);
   let opts="";
   q.a.forEach((opt,idx)=>{
-    const sel=ex.answers[ex.i]===idx;
-    opts+=`<button class="opt ${sel?'sel':''}" onclick="examPick(${idx})"><span class="mk">${String.fromCharCode(65+idx)}</span>${esc(opt)}</button>`;
+    const cur=ex.answers[ex.i];
+    const sel=multi?(Array.isArray(cur)&&cur.includes(idx)):cur===idx;
+    const mk=multi?(sel?"☑":"☐"):String.fromCharCode(65+idx);
+    opts+=`<button class="opt ${sel?'sel':''}" onclick="examPick(${idx})"><span class="mk">${mk}</span>${esc(opt)}</button>`;
   });
+  if(multi)opts+=`<div class="stat" style="color:var(--dim);margin-top:2px">Select ${q.c.length}. Use Next when you're done.</div>`;
   let map="";
   ex.deck.forEach((_,i)=>{
-    let cls=i===ex.i?"cur":ex.flags.has(i)?"flagged":ex.answers[i]!==null?"answered":"";
+    let cls=i===ex.i?"cur":ex.flags.has(i)?"flagged":answered(ex.deck[i],ex.answers[i])?"answered":"";
     map+=`<button class="${cls}" onclick="examJump(${i})">${i+1}</button>`;
   });
-  const answered=ex.answers.filter(a=>a!==null).length;
+  const answeredN=ex.deck.filter((qq,i)=>answered(qq,ex.answers[i])).length;
   app.innerHTML=header()+`<div style="max-width:720px;margin:0 auto">
     <div class="qbar"><span class="eyebrow" style="color:${t.hex}">${t.name} Exam · Q${ex.i+1}/${ex.deck.length}</span>
     <span id="ex-timer" style="font-size:20px;font-weight:700;color:${ex.time<=120?'var(--red)':'var(--amber)'}">${fmtTime(ex.time)}</span>
-    <span style="color:var(--dim)">${answered}/${ex.deck.length} answered</span></div>
+    <span style="color:var(--dim)">${answeredN}/${ex.deck.length} answered</span></div>
     <div class="tbar ${ex.time<=120?'low':''}"><div id="ex-bar" style="width:${ex.time/(TRACKS[ex.track].examMin*60)*100}%"></div></div>
     <div class="panel">
       <div class="eyebrow" style="margin-bottom:8px">${esc(q.d)}</div>
-      <div style="font-size:17px;line-height:1.5">${esc(q.q)}</div>
+      <div style="font-size:17px;line-height:1.5">${esc(q.q)}${multiHint(q)}</div>
       <div class="grid" style="margin-top:18px">${opts}</div></div>
     <div class="exam-map">${map}</div>
     <div class="nav">
@@ -2580,12 +3077,25 @@ function renderExam(){
       <button class="btn" style="background:${t.hex};border-color:${t.hex}" onclick="confirmSubmit()">Submit exam</button>
     </div></div>`;
 }
-window.examPick=function(idx){touchTime();save();ex.answers[ex.i]=idx;if(ex.i<ex.deck.length-1)ex.i++;renderExam();};
+window.examPick=function(idx){
+  touchTime();save();
+  const q=ex.deck[ex.i];
+  if(isMulti(q)){
+    const cur=Array.isArray(ex.answers[ex.i])?ex.answers[ex.i]:[];
+    const at=cur.indexOf(idx);
+    if(at>=0)cur.splice(at,1); else cur.push(idx);
+    ex.answers[ex.i]=cur;
+    renderExam();return;                       /* no auto-advance while ticking boxes */
+  }
+  ex.answers[ex.i]=idx;
+  if(ex.i<ex.deck.length-1)ex.i++;
+  renderExam();
+};
 window.examNav=function(d){ex.i+=d;renderExam();};
 window.examJump=function(i){ex.i=i;renderExam();};
 window.examFlag=function(){ex.flags.has(ex.i)?ex.flags.delete(ex.i):ex.flags.add(ex.i);renderExam();};
 window.confirmSubmit=function(){
-  const un=ex.answers.filter(a=>a===null).length;
+  const un=ex.deck.filter((qq,i)=>!answered(qq,ex.answers[i])).length;
   if(un>0&&!confirm(un+" unanswered question"+(un>1?"s":"")+" — submit anyway?"))return;
   clearInterval(exTimer);finishExam();
 };
@@ -2593,7 +3103,7 @@ function finishExam(){
   ex.done=true;
   let correct=0;const dom={};const misses=[];
   ex.deck.forEach((q,i)=>{
-    const ok=ex.answers[i]===q.c;
+    const ok=isCorrect(q,ex.answers[i]);
     if(ok)correct++;else misses.push({q,picked:ex.answers[i]});
     dom[q.d]=dom[q.d]||{c:0,n:0};dom[q.d].n++;if(ok)dom[q.d].c++;
     recordAnswer(q,ok);
@@ -2622,8 +3132,8 @@ function renderExamReport(){
     r.misses.forEach(m=>{
       const rel=relFor(m.q);
       missHtml+=`<div class="miss-item"><div>${esc(m.q.q)}</div>
-        <div class="x">Your answer: <span style="color:var(--red)">${m.picked===null?"— skipped":esc(m.q.a[m.picked])}</span><br>
-        Correct: <span style="color:var(--cyan)">${esc(m.q.a[m.q.c])}</span><br>${esc(m.q.x)}</div>
+        <div class="x">Your answer: <span style="color:var(--red)">${!answered(m.q,m.picked)?"— skipped":esc(isMulti(m.q)?m.picked.map(i=>m.q.a[i]).join("  ·  "):m.q.a[m.picked])}</span><br>
+        Correct: <span style="color:var(--cyan)">${esc(correctText(m.q))}</span><br>${esc(m.q.x)}</div>
         ${rel?`<button class="btn ghost" style="border-color:var(--blue);color:var(--blue);margin-top:10px;font-size:11px;padding:7px 12px" onclick="go({screen:'scen',id:'${rel.id}',back:'exam'})">◫ Deep dive: ${esc(rel.title)} →</button>`:''}</div>`;
     });
     missHtml+="</div>";
@@ -2786,7 +3296,7 @@ function renderMissed(){
         <span style="font-family:var(--mono);font-size:11px;color:${t.hex}">${t.short}</span>
         <span style="font-family:var(--mono);font-size:11px;color:${fixed?'var(--cyan)':'var(--red)'}">${fixed?'✓ recovered':'missed ×'+o.s.miss}</span></div>
       <div style="margin-top:6px">${esc(o.q.q)}</div>
-      <div class="x">Answer: <span style="color:var(--cyan)">${esc(o.q.a[o.q.c])}</span><br>${esc(o.q.x)}</div>
+      <div class="x">Answer: <span style="color:var(--cyan)">${esc(correctText(o.q))}</span><br>${esc(o.q.x)}</div>
       ${rel?`<button class="btn ghost" style="border-color:var(--blue);color:var(--blue);margin-top:10px;font-size:11px;padding:7px 12px" onclick="go({screen:'scen',id:'${rel.id}',back:'missed'})">◫ Deep dive: ${esc(rel.title)} →</button>`:''}</div>`;
   });
   app.innerHTML=header()+`<div style="max-width:720px;margin:0 auto">
