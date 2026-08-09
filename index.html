@@ -1757,32 +1757,16 @@ function renderHome(){
   const chip=(bg,sym)=>`<div class="chip" style="background:${bg}">${sym}</div>`;
   const featBtn=(hex,label,act)=>`<button class="btn" style="background:${hex};border-color:${hex};box-shadow:0 8px 22px -10px ${hex}88;font-size:11px;padding:9px 16px" onclick="${act}">${label}</button>`;
 
-  /* sidebar */
-  const navItem=(sym,bg,label,act,on)=>`<button class="navlink${on?' on':''}" onclick="${act}"><span class="ic" style="background:${bg}">${sym}</span>${label}</button>`;
+  /* sidebar — grouped, so it stays short */
   const side=`<aside class="side">
-    <nav class="panel" style="padding:10px;display:grid;gap:2px">
-      ${navItem("▦","rgba(255,179,71,.15)","Dashboard","go({screen:'home'})",true)}
-      ${navItem("◈","rgba(255,179,71,.15)","Test your knowledge","go({screen:'diag'})")}
-      ${navItem("◎","rgba(63,214,198,.15)","Smart Review","go({screen:'smart'})")}
-      ${navItem("◫","rgba(91,157,255,.15)","Scenario Lab","go({screen:'scenList'})")}
-      ${navItem("⟲","rgba(176,140,255,.15)","Explain it back","go({screen:'explain'})")}
-      ${navItem("⚡","rgba(255,179,71,.15)","Blitz mode","go({screen:'blitz'})")}
-      ${navItem("✕","rgba(244,99,78,.15)","Missed log","go({screen:'missed'})")}
-      ${navItem("⌘","rgba(123,216,143,.15)","Command reference","go({screen:'learn'})")}
-      ${navItem("▶","rgba(63,214,198,.15)","Command sandbox","go({screen:'sandbox'})")}
-      ${navItem("⌕","rgba(255,179,71,.15)","Task finder","go({screen:'tasks'})")}
-      ${navItem("▤","rgba(63,214,198,.15)","My stats","go({screen:'stats'})")}
-    </nav>
+    ${navSidebar()}
     <div class="panel">${osiLadder()}</div>
     <div class="panel" style="font-family:var(--mono);font-size:12px;color:var(--dim);display:grid;gap:7px">
       <div>Daily streak <span style="color:var(--red);float:right">🔥 ${liveStreak()} (best ${stats.daily.best})</span></div>
-      <div>Best answer streak <span style="color:var(--cyan);float:right">${stats.bestStreak}</span></div>
       <div>Scenarios <span style="color:var(--blue);float:right">${Object.keys(stats.scen).length}/${SCEN.length}</span></div>
-      <div>Concepts mastered <span style="color:var(--purple);float:right">${Object.keys(stats.expl).length}/${EXPLAIN.length}</span></div>
-      <div>Commands solved <span style="color:var(--green);float:right">${cmdSolved}/${CMDS.length}</span></div>
-      <div>Labs complete <span style="color:var(--red);float:right">${labsDone}/${LABS.length}</span></div>
-      <div>Question bank <span style="color:var(--text);float:right">${Q.length}</span></div>
-      <div style="margin-top:2px;font-size:10.5px">Correct +25 XP · streak ×5 +50 · exam pass +200</div>
+      <div>Concepts <span style="color:var(--purple);float:right">${Object.keys(stats.expl).length}/${EXPLAIN.length}</span></div>
+      <div>Commands <span style="color:var(--green);float:right">${cmdSolved}/${CMDS.length}</span></div>
+      <button onclick="go({screen:'stats'})" style="background:none;border:none;color:var(--cyan);font-family:var(--mono);font-size:11px;text-align:left;cursor:pointer;padding:2px 0;margin-top:2px">Full stats →</button>
     </div>
   </aside>`;
 
@@ -1881,30 +1865,11 @@ function renderHome(){
     </div>
 
     <div class="panel feat span2">
-      <div class="fh">${chip("linear-gradient(135deg,#FFC167,#FF8E3C)","⌕")}
-        <div><h3>Task Finder</h3>
-        <p>"If you want to… use…" — search by the job you're doing, across six platforms</p></div>
-        <button class="btn" style="font-size:10px;padding:8px 14px;margin-left:auto" onclick="go({screen:'tasks'})">Search</button></div>
-    </div>
-
-    <div class="panel feat span2">
-      <div class="fh">${chip("rgba(63,214,198,.16)","▶")}
-        <div><h3 style="color:var(--cyan)">Command Sandbox</h3>
-        <p>Free-play CLI on six simulated devices — every command explains itself as you go</p></div>
-        <button class="btn ghost" style="border-color:var(--green);color:var(--green);font-size:10px;padding:8px 12px;margin-left:auto" onclick="go({screen:'learn'})">⌘ Reference</button></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${Object.entries(SB).map(([k,x])=>`<button class="btn ghost" style="border-color:${x.hex};color:${x.hex};font-size:10px;padding:8px 12px" onclick="sbVendor('${k}');go({screen:'sandbox'})">${esc(x.name)}</button>`).join("")}</div>
-    </div>
-
-    <div class="panel feat span2">
-      <div class="fh">${chip("rgba(244,99,78,.16)","⚗")}
-        <div><h3 style="color:var(--red)">Practice Labs</h3>
-        <p>Multi-step missions — build a config command by command · <span style="color:var(--text)">${labsDone}/${LABS.length} complete</span></p></div></div>
-      <div class="grid" style="gap:8px">
-        ${LABS.map(l=>{const tt=TRACKS[l.t];return `<button class="panel" style="text-align:left;cursor:pointer;padding:12px 15px;display:flex;justify-content:space-between;align-items:center;gap:10px;border-left:3px solid ${tt.hex};color:var(--text)" onclick="go({screen:'lab',id:'${l.id}'})">
-          <div><span style="font-family:var(--mono);font-size:10px;color:${tt.hex}">${tt.short}</span>
-          <div style="font-size:14px;font-weight:600;margin-top:2px">${esc(l.title)}</div></div>
-          <span style="font-family:var(--mono);font-size:13px;color:${stats.labs[l.id]?'var(--cyan)':'var(--dim)'}">${stats.labs[l.id]?'✓':l.steps.length+' steps'}</span></button>`;}).join("")}
-      </div>
+      <div class="fh">${chip("rgba(123,216,143,.16)","⌘")}
+        <div><h3 style="color:var(--green)">Commands &amp; Labs</h3>
+        <p>Sandbox · Task finder · Reference · Command Lab · Practice Labs — six platforms in one place<br>
+        <span style="color:var(--text)">${cmdSolved}/${CMDS.length} commands solved · ${labsDone}/${LABS.length} labs complete</span></p></div>
+        <button class="btn" style="background:var(--green);border-color:var(--green);box-shadow:0 8px 22px -10px #7BD88F88;font-size:11px;padding:9px 16px;margin-left:auto" onclick="go({screen:'commands'})">Open</button></div>
     </div>
 
     <div class="span2" style="margin-top:6px"><span class="eyebrow">Certification tracks</span></div>
@@ -3632,6 +3597,87 @@ function renderTasks(){
   if(i&&i.focus){try{i.focus();if(i.setSelectionRange)i.setSelectionRange(i.value.length,i.value.length);}catch(e){}}
 }
 
+/* ---------------- GROUPED NAVIGATION ---------------- */
+const NAV=[
+ {id:"dash",label:"Dashboard",sym:"▦",bg:"rgba(255,179,71,.15)",screen:"home",screens:["home"]},
+ {id:"study",label:"Study",sym:"◎",bg:"rgba(63,214,198,.15)",
+  screens:["diag","diagReport","smart","quiz","levels","gate","cards","blitz","missed","examIntro","exam","examReport"],
+  items:[["Test your knowledge","go({screen:'diag'})"],["Smart Review","go({screen:'smart'})"],
+         ["Blitz mode","go({screen:'blitz'})"],["Missed log","go({screen:'missed'})"]]},
+ {id:"cmds",label:"Commands",sym:"⌘",bg:"rgba(123,216,143,.15)",screen:"commands",
+  screens:["commands","sandbox","tasks","learn","cmdlab","lab"],
+  items:[["Sandbox","go({screen:'sandbox'})"],["Task finder","go({screen:'tasks'})"],
+         ["Reference","go({screen:'learn'})"],["Command Lab","go({screen:'commands'})"],
+         ["Practice Labs","go({screen:'commands'})"]]},
+ {id:"learn",label:"Learn",sym:"◫",bg:"rgba(91,157,255,.15)",
+  screens:["scenList","scen","explain"],
+  items:[["Scenario Lab","go({screen:'scenList'})"],["Explain it back","go({screen:'explain'})"]]},
+ {id:"prog",label:"Progress",sym:"▤",bg:"rgba(176,140,255,.15)",screens:["stats"],
+  items:[["My stats","go({screen:'stats'})"]]},
+];
+let navOpen=null;
+window.navToggle=function(id){
+  const g=NAV.find(x=>x.id===id);
+  if(g&&!g.items){go({screen:g.screen});return;}
+  navOpen=(navOpen===id?null:id);render();
+};
+function navSidebar(){
+  const cur=S.screen||"home";
+  const activeGroup=(NAV.find(g=>g.screens.includes(cur))||{}).id;
+  if(navOpen===null)navOpen=activeGroup;
+  let out="";
+  NAV.forEach(g=>{
+    const on=g.id===activeGroup, open=navOpen===g.id&&g.items;
+    out+=`<button class="navlink${on?' on':''}" onclick="navToggle('${g.id}')">
+      <span class="ic" style="background:${g.bg}">${g.sym}</span>${g.label}
+      ${g.items?`<span style="margin-left:auto;color:var(--dim);font-size:10px;transition:transform .15s;display:inline-block;transform:rotate(${open?90:0}deg)">›</span>`:''}
+    </button>`;
+    if(open){
+      out+=`<div style="display:grid;gap:1px;margin:1px 0 4px 0;padding-left:37px;border-left:1px solid var(--line);margin-left:13px">
+        ${g.items.map(([l,act])=>`<button onclick="${act}" style="text-align:left;background:none;border:none;cursor:pointer;color:var(--dim);font-family:var(--sans);font-size:12.5px;padding:7px 10px;border-radius:8px" onmouseover="this.style.color='var(--text)';this.style.background='var(--panel2)'" onmouseout="this.style.color='var(--dim)';this.style.background='none'">${l}</button>`).join("")}
+      </div>`;
+    }
+  });
+  return `<nav class="panel" style="padding:10px;display:grid;gap:2px">${out}</nav>`;
+}
+
+/* ---------------- COMMANDS HUB ---------------- */
+function renderCommands(){
+  const cmdSolved=CMDS.filter(c=>stats.cmd[c.id]===true).length;
+  const labsDone=LABS.filter(l=>stats.labs[l.id]).length;
+  const sec=(sym,color,title,desc,body)=>`<div class="panel" style="border-left:3px solid ${color}">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="chip" style="background:${color}22">${sym}</div>
+      <div><h3 style="font-size:15.5px;font-weight:700;color:${color}">${title}</h3>
+      <p style="font-size:12.5px;color:var(--dim);line-height:1.5;margin-top:2px">${desc}</p></div></div>
+    <div style="margin-top:13px">${body}</div></div>`;
+
+  const devBtns=Object.entries(SB).map(([k,x])=>`<button class="btn ghost" style="border-color:${x.hex};color:${x.hex};font-size:10px;padding:8px 12px" onclick="sbVendor('${k}');go({screen:'sandbox'})">${esc(x.name)}</button>`).join("");
+  const labBtns=Object.entries(GRP).map(([k,t])=>`<button class="btn ghost" style="border-color:${t.hex};color:${t.hex};font-size:10px;padding:8px 12px" onclick="go({screen:'cmdlab',track:'${k}'})">${t.short}</button>`).join("");
+  const refBtns=LEARN.map(v=>`<button class="btn ghost" style="border-color:${v.hex};color:${v.hex};font-size:10px;padding:8px 12px" onclick="learnVendor('${v.id}');go({screen:'learn'})">${esc(v.name)}</button>`).join("");
+  const labList=LABS.map(l=>{const t=TRACKS[l.t];return `<button class="panel" style="text-align:left;cursor:pointer;padding:12px 15px;display:flex;justify-content:space-between;align-items:center;gap:10px;border-left:3px solid ${t.hex};color:var(--text)" onclick="go({screen:'lab',id:'${l.id}'})">
+    <div><span style="font-family:var(--mono);font-size:10px;color:${t.hex}">${t.short}</span>
+    <div style="font-size:14px;font-weight:600;margin-top:2px">${esc(l.title)}</div></div>
+    <span style="font-family:var(--mono);font-size:13px;color:${stats.labs[l.id]?'var(--cyan)':'var(--dim)'}">${stats.labs[l.id]?'✓':l.steps.length+' steps'}</span></button>`;}).join("");
+
+  app.innerHTML=header()+`<div class="home">${navSidebar()}
+    <div style="display:grid;gap:13px">
+      <div>
+        <span class="eyebrow" style="color:var(--green)">Commands</span>
+        <h2 class="screen-title" style="margin:4px 0 4px">Everything CLI in one place</h2>
+        <p style="font-size:13px;color:var(--dim)">Explore freely, look up a task, read what a command means, or drill it under pressure.</p>
+      </div>
+      ${sec("▶","#3FD6C6","Sandbox","Free-play on six simulated devices — every command explains itself",devBtns)}
+      ${sec("⌕","#FFB347","Task Finder",'"If you want to… use…" — search 76 tasks by the job you\'re doing',
+        `<button class="btn" style="font-size:11px;padding:9px 16px" onclick="go({screen:'tasks'})">Search tasks</button>`)}
+      ${sec("⌘","#7BD88F","Reference","Config models, prompts, command anatomy, and a side-by-side translation table",refBtns)}
+      ${sec("⌨","#B08CFF","Command Lab",`Timed challenges — type the right command for a real scenario · <span style="color:var(--text)">${cmdSolved}/${CMDS.length} solved</span>`,labBtns)}
+      ${sec("⚗","#F4634E","Practice Labs",`Multi-step missions — build a full config command by command · <span style="color:var(--text)">${labsDone}/${LABS.length} complete</span>`,
+        `<div class="grid" style="gap:8px">${labList}</div>`)}
+      <div class="nav"><button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="go({screen:'home'})">← Dashboard</button></div>
+    </div></div>`;
+}
+
 /* ---------------- ROUTER ---------------- */
 function render(){
   if(cloud.on&&!cloud.token){renderCloudAuth();return;}
@@ -3647,6 +3693,7 @@ function render(){
     case"learn":renderLearn();break;
     case"sandbox":renderSandbox();break;
     case"tasks":renderTasks();break;
+    case"commands":renderCommands();break;
     case"cmdlab":if(cl.track!==S.track||!cl.deck||S.fresh){startCmd(S.track);S.fresh=false;}renderCmd();break;
     case"lab":if(!lb.lab||lb.lab.id!==S.id||lb.done&&S.fresh||S.fresh){startLab(S.id);S.fresh=false;}renderLab();break;
     case"quiz":if(quiz.track!==S.track||quiz.level!==S.level||quiz.smart||!quiz.deck||S.fresh){startQuiz(S.track,false,S.level);S.fresh=false;}renderQuiz();break;
