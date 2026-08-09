@@ -639,13 +639,35 @@ const REL=[
 ];
 function relFor(q){
   const hay=q.q+" "+q.a.join(" ");
-  for(const[rx,id,tr]of REL){
-    if(tr){if(q.t!==tr)continue;}
-    else if(q.t==="paloalto")continue;
-    if(rx.test(hay))return SCEN.find(s=>s.id===id);
+  for(const[rx,id]of REL){
+    const s=SCEN.find(x=>x.id===id);
+    if(!s||s.t!==q.t)continue;          /* only ever suggest a case from the same cert */
+    if(rx.test(hay))return s;
   }
   return null;
 }
+/* remember where a deep dive was opened from, so we can drop you back into it */
+function backTarget(b){
+  if(b==="quiz")return quiz.smart?{screen:"smart"}:{screen:"quiz",track:quiz.track,level:quiz.level};
+  if(b==="exam")return {screen:"examReport",track:ex.track};
+  if(b==="missed")return {screen:"missed"};
+  if(b==="gate")return {screen:"gate",track:gt.track,level:gt.level};
+  if(b==="diag")return {screen:"diagReport"};
+  return null;
+}
+function backLabel(b){
+  return b==="quiz"?(quiz.smart?"← Back to Smart Review":"← Back to the quiz")
+    :b==="exam"?"← Back to exam report"
+    :b==="missed"?"← Back to missed log"
+    :b==="gate"?"← Back to written check"
+    :b==="diag"?"← Back to knowledge map":"";
+}
+window.backToStudy=function(){
+  const t=backTarget(sc.back);
+  if(t)_go(t); else _go({screen:"scenList"});   /* no fresh flag = resume instead of restart */
+  window.scrollTo(0,0);
+};
+window.resumeQuiz=function(){_go(backTarget("quiz"));window.scrollTo(0,0);};
 
 /* ============================ EXPLAIN IT BACK ============================ */
 /* Active recall: explain the concept out loud, then compare to the model answer */
@@ -984,7 +1006,13 @@ function levelUnlocked(track,l){
   if(d&&(d.ready||l<=d.lv))return true;
   return levelPassed(track,lvs[i-1]);
 }
-function save(){if(!currentPid)return;store.set(pkey("stats"),JSON.stringify(stats));store.set(pkey("qstats"),JSON.stringify(qstats));}
+function save(){
+  if(!currentPid)return;
+  stats.updatedAt=Date.now();
+  store.set(pkey("stats"),JSON.stringify(stats));
+  store.set(pkey("qstats"),JSON.stringify(qstats));
+  queueSync();
+}
 function qid(q){return q.t+":"+q.q.slice(0,40);}
 function dstr(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function touchStreak(){
@@ -1036,9 +1064,10 @@ function header(){
       <small>certification training console</small>
     </button>
     <div style="display:flex;align-items:center;gap:10px">
+      ${cloud.on?`<button onclick="syncNow()" title="${cloud.state==="ok"?"Synced to your NAS":cloud.state==="syncing"?"Syncing…":"Offline — changes saved locally"}" style="background:var(--panel);border:1px solid var(--line);border-radius:99px;color:${cloud.state==="ok"?"var(--cyan)":cloud.state==="syncing"?"var(--amber)":"var(--dim)"};cursor:pointer;font-family:var(--mono);font-size:11px;padding:7px 12px">${cloud.state==="ok"?"☁ synced":cloud.state==="syncing"?"⟳ syncing":"⚠ offline"}</button>`:""}
       <div class="hdr-xp">${liveStreak()>0?`<span style="color:var(--red)">🔥${liveStreak()}d</span> · `:''}<span style="color:${todayMins()>=stats.time.goal?'var(--cyan)':'var(--dim)'}">⏱${todayMins()}m</span> · ${stats.xp} XP · L${layerOf(stats.xp)}</div>
       ${(()=>{const p=profiles.find(x=>x.id===currentPid);return p?`<button onclick="go({screen:'stats'})" title="${esc(p.name)} — my stats" style="width:36px;height:36px;border-radius:50%;background:${p.color};color:#0B1220;border:none;cursor:pointer;font-weight:800;font-family:var(--mono);font-size:13px">${esc(initials(p.name))}</button>
-      <button onclick="switchProfile()" title="Sign out" style="background:none;border:1px solid var(--line);border-radius:10px;color:var(--dim);cursor:pointer;font-size:13px;padding:8px 10px">⎋</button>`:"";})()}
+      <button onclick="${cloud.on?'cloudSignOut()':'switchProfile()'}" title="Sign out" style="background:none;border:1px solid var(--line);border-radius:10px;color:var(--dim);cursor:pointer;font-size:13px;padding:8px 10px">⎋</button>`:"";})()}
     </div>
   </header>`;
 }
@@ -1124,7 +1153,16 @@ function renderHome(){
       </div></div>`;
   }
 
+  const inProgress = quiz.deck && quiz.i < quiz.deck.length;
+  const resumeCard = inProgress ? `
+    <div class="panel span2" style="border-left:3px solid var(--cyan);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div><span class="eyebrow" style="color:var(--cyan)">▸ Continue where you left off</span>
+      <div style="font-size:14px;margin-top:5px">${quiz.smart?"Smart Review":TRACKS[quiz.track].name+(quiz.level?" · "+LV[quiz.level].n:"")} — question ${quiz.i+1} of ${quiz.deck.length}</div></div>
+      <button class="btn" style="background:var(--cyan);border-color:var(--cyan);box-shadow:0 8px 22px -10px #3FD6C688" onclick="resumeQuiz()">Resume</button>
+    </div>` : "";
+
   const main=`<div class="main-grid">
+    ${resumeCard}
     <div class="panel span2" style="border-left:3px solid ${mins>=goal?'var(--cyan)':'var(--amber)'}">
       <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
         <span class="eyebrow" style="color:${mins>=goal?'var(--cyan)':'var(--amber)'}">⏱ Study time today</span>
@@ -1292,7 +1330,7 @@ function renderDiagReport(){
       const rel=relFor(m);
       missHtml+=`<div class="miss-item" style="font-size:13px"><div>${esc(m.q)}</div>
         <div class="x">Answer: <span style="color:var(--cyan)">${esc(m.a[m.c])}</span> — ${esc(m.x)}</div>
-        ${rel?`<button class="btn ghost" style="border-color:var(--blue);color:var(--blue);margin-top:8px;font-size:11px;padding:6px 10px" onclick="go({screen:'scen',id:'${rel.id}'})">◫ ${esc(rel.title)} →</button>`:''}</div>`;
+        ${rel?`<button class="btn ghost" style="border-color:var(--blue);color:var(--blue);margin-top:8px;font-size:11px;padding:6px 10px" onclick="go({screen:'scen',id:'${rel.id}',back:'diag'})">◫ ${esc(rel.title)} →</button>`:''}</div>`;
     });
     secs+=`<div class="panel" style="margin-top:14px;border-left:3px solid ${t.hex}">
       <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
@@ -1380,7 +1418,7 @@ function renderGate(){
       const rel=relFor(m);
       missHtml+=`<div class="miss-item" style="font-size:13px"><div>${esc(m.q)}</div>
         <div class="x">Answer: <span style="color:var(--cyan)">${esc(m.a[m.c])}</span> — ${esc(m.x)}</div>
-        ${rel?`<button class="btn ghost" style="border-color:var(--blue);color:var(--blue);margin-top:8px;font-size:11px;padding:6px 10px" onclick="go({screen:'scen',id:'${rel.id}'})">◫ ${esc(rel.title)} →</button>`:''}</div>`;
+        ${rel?`<button class="btn ghost" style="border-color:var(--blue);color:var(--blue);margin-top:8px;font-size:11px;padding:6px 10px" onclick="go({screen:'scen',id:'${rel.id}',back:'gate'})">◫ ${esc(rel.title)} →</button>`:''}</div>`;
     });
     app.innerHTML=header()+`<div style="max-width:680px;margin:0 auto">
       <div class="panel center" style="border-color:${r.pass?'var(--cyan)':'var(--red)'};padding:26px">
@@ -1526,7 +1564,7 @@ function renderQuiz(){
     const rel=!ok?relFor(q):null;
     explain=`<div class="explain ${ok?'':'bad'}"><span class="tag" style="color:${ok?'var(--cyan)':'var(--red)'}">${ok?'Correct':'Incorrect'}</span>
       <div style="margin-top:6px">${esc(q.x)}</div>
-      ${rel?`<button class="btn ghost" style="border-color:var(--blue);color:var(--blue);margin-top:12px;font-size:11px;padding:8px 14px" onclick="go({screen:'scen',id:'${rel.id}'})">◫ Deep dive: ${esc(rel.title)} →</button>`:''}</div>`;
+      ${rel?`<button class="btn ghost" style="border-color:var(--blue);color:var(--blue);margin-top:12px;font-size:11px;padding:8px 14px" onclick="go({screen:'scen',id:'${rel.id}',back:'quiz'})">◫ Deep dive: ${esc(rel.title)} →</button>`:''}</div>`;
   }
   app.innerHTML=header()+`<div style="max-width:720px;margin:0 auto">
     <div class="qbar"><span class="eyebrow" style="color:${t.hex}">${t.name}${quiz.smart?` · ${TRACKS[q.t].short}`:''} · Q${quiz.i+1}/${quiz.deck.length}</span>
@@ -1743,7 +1781,7 @@ function renderExamReport(){
       missHtml+=`<div class="miss-item"><div>${esc(m.q.q)}</div>
         <div class="x">Your answer: <span style="color:var(--red)">${m.picked===null?"— skipped":esc(m.q.a[m.picked])}</span><br>
         Correct: <span style="color:var(--cyan)">${esc(m.q.a[m.q.c])}</span><br>${esc(m.q.x)}</div>
-        ${rel?`<button class="btn ghost" style="border-color:var(--blue);color:var(--blue);margin-top:10px;font-size:11px;padding:7px 12px" onclick="go({screen:'scen',id:'${rel.id}'})">◫ Deep dive: ${esc(rel.title)} →</button>`:''}</div>`;
+        ${rel?`<button class="btn ghost" style="border-color:var(--blue);color:var(--blue);margin-top:10px;font-size:11px;padding:7px 12px" onclick="go({screen:'scen',id:'${rel.id}',back:'exam'})">◫ Deep dive: ${esc(rel.title)} →</button>`:''}</div>`;
     });
     missHtml+="</div>";
   }
@@ -1827,7 +1865,9 @@ function renderScenario(){
       <div class="grid" style="margin-top:14px">${opts}</div>${qh}</div>
     <div class="nav" style="margin-top:16px">
       <button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="go({screen:'scenList'})">All scenarios</button>
-      ${next?`<button class="btn" style="background:${t.hex};border-color:${t.hex}" onclick="go({screen:'scen',id:'${next.id}'})">Next case →</button>`:`<button class="btn" onclick="go({screen:'home'})">Done</button>`}
+      ${sc.back
+        ?`<button class="btn" style="background:${t.hex};border-color:${t.hex}" onclick="backToStudy()">${backLabel(sc.back)}</button>`
+        :(next?`<button class="btn" style="background:${t.hex};border-color:${t.hex}" onclick="go({screen:'scen',id:'${next.id}'})">Next case →</button>`:`<button class="btn" onclick="go({screen:'home'})">Done</button>`)}
     </div></div>`;
 }
 window.scenPick=function(i){
@@ -1904,7 +1944,7 @@ function renderMissed(){
         <span style="font-family:var(--mono);font-size:11px;color:${fixed?'var(--cyan)':'var(--red)'}">${fixed?'✓ recovered':'missed ×'+o.s.miss}</span></div>
       <div style="margin-top:6px">${esc(o.q.q)}</div>
       <div class="x">Answer: <span style="color:var(--cyan)">${esc(o.q.a[o.q.c])}</span><br>${esc(o.q.x)}</div>
-      ${rel?`<button class="btn ghost" style="border-color:var(--blue);color:var(--blue);margin-top:10px;font-size:11px;padding:7px 12px" onclick="go({screen:'scen',id:'${rel.id}'})">◫ Deep dive: ${esc(rel.title)} →</button>`:''}</div>`;
+      ${rel?`<button class="btn ghost" style="border-color:var(--blue);color:var(--blue);margin-top:10px;font-size:11px;padding:7px 12px" onclick="go({screen:'scen',id:'${rel.id}',back:'missed'})">◫ Deep dive: ${esc(rel.title)} →</button>`:''}</div>`;
   });
   app.innerHTML=header()+`<div style="max-width:720px;margin:0 auto">
     <span class="eyebrow" style="color:var(--red)">Missed Log</span>
@@ -1996,32 +2036,326 @@ window.labRun=function(){
 };
 window.labReveal=function(){touchTime();lb.state="revealed";save();render();};
 
+
+/* ============================================================
+   CLOUD MODE — talks to the NAS backend when it's reachable.
+   Served from the NAS  -> real accounts + cross-device sync.
+   Opened anywhere else -> local profiles, exactly as before.
+   ============================================================ */
+let cloud={on:false,token:null,user:null,state:"idle",err:null,lastSync:0,timer:null};
+let ca={mode:"signin",err:"",msg:"",busy:false,resetToken:null};
+const API=(p)=>p;   /* same origin: the server serves this file */
+
+async function api(method,path,body,token){
+  const r=await fetch(API(path),{method,
+    headers:{"Content-Type":"application/json",...(token?{Authorization:"Bearer "+token}:{})},
+    body:body?JSON.stringify(body):undefined});
+  let d=null;try{d=await r.json();}catch(e){}
+  return{ok:r.ok,status:r.status,data:d||{}};
+}
+async function probeApi(){
+  try{
+    const c=new AbortController();const t=setTimeout(()=>c.abort(),2500);
+    const r=await fetch(API("/api/health"),{signal:c.signal});clearTimeout(t);
+    if(!r.ok)return false;
+    const d=await r.json();return d&&d.ok===true;
+  }catch(e){return false;}
+}
+function cloudSignedOut(){cloud.token=null;cloud.user=null;store.set("cc-token","");currentPid=null;}
+
+async function cloudEnter(token,user){
+  cloud.token=token;cloud.user=user;store.set("cc-token",token);
+  currentPid="u"+user.id;
+  load();
+  lastActive=Date.now();sessionStart=Date.now();
+  await syncPull();
+  ca={mode:"signin",err:"",msg:"",busy:false,resetToken:null};
+  go({screen:"home"});
+}
+
+/* pull on sign-in: whichever side is newer wins */
+async function syncPull(){
+  if(!cloud.token)return;
+  cloud.state="syncing";
+  try{
+    const r=await api("GET","/api/progress",null,cloud.token);
+    if(r.ok){
+      const srv=r.data, localAt=Number(stats.updatedAt||0), srvAt=Number(srv.updatedAt||0);
+      if(srv.stats&&srvAt>localAt){
+        stats={...defStats(),...srv.stats};
+        if(!stats.days)stats.days={};
+        qstats=srv.qstats||{};
+        save();
+      }else if(localAt>srvAt){
+        await syncPush(true);
+      }
+      cloud.state="ok";cloud.lastSync=Date.now();cloud.err=null;
+    }else cloud.state="off";
+  }catch(e){cloud.state="off";}
+}
+
+async function syncPush(silent){
+  if(!cloud.token)return;
+  cloud.state="syncing";if(!silent)render();
+  try{
+    const r=await api("PUT","/api/progress",{stats,qstats,updatedAt:Number(stats.updatedAt||Date.now())},cloud.token);
+    if(r.ok){cloud.state="ok";cloud.lastSync=Date.now();cloud.err=null;}
+    else if(r.status===409&&r.data.server){
+      /* another device saved something newer — take theirs */
+      stats={...defStats(),...r.data.server.stats};
+      if(!stats.days)stats.days={};
+      qstats=r.data.server.qstats||{};
+      save();cloud.state="ok";cloud.lastSync=Date.now();
+    }
+    else if(r.status===401){cloudSignedOut();cloud.state="idle";}
+    else cloud.state="off";
+  }catch(e){cloud.state="off";}
+  if(!silent)render();
+}
+function queueSync(){
+  if(!cloud.on||!cloud.token)return;
+  clearTimeout(cloud.timer);
+  cloud.timer=setTimeout(()=>syncPush(true),4000);   /* debounce: 4s after the last change */
+}
+
+/* ---------------- cloud auth screens ---------------- */
+function renderCloudAuth(){
+  const F=(id,ph,type,val)=>`<input id="${id}" ${type?`type="${type}"`:""} value="${esc(val||"")}" placeholder="${esc(ph)}" autocapitalize="off"
+    onkeydown="if(event.key==='Enter')caSubmit()"
+    style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:15px;padding:12px 14px;outline:none;font-family:var(--sans);width:100%">`;
+  let body="",title="",foot="";
+  if(ca.mode==="signup"){
+    title="Create your account";
+    body=`<div style="display:flex;gap:9px;flex-wrap:wrap">
+        <span style="flex:1;min-width:120px">${F("cf","First name","",ca.fn)}</span>
+        <span style="flex:1;min-width:120px">${F("cl","Last name","",ca.ln)}</span></div>
+      ${F("ce","Email address","email",ca.em)}
+      ${F("cp","Password (8+ characters)","password")}`;
+    foot=`<button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="caMode('signin')">I already have an account</button>`;
+  }else if(ca.mode==="forgot"){
+    title="Reset your password";
+    body=`<p style="font-size:13.5px;line-height:1.6;color:var(--dim)">Enter your email and we'll send a reset link. It's good for one hour.</p>
+      ${F("ce","Email address","email",ca.em)}`;
+    foot=`<button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="caMode('signin')">Back to sign in</button>`;
+  }else if(ca.mode==="reset"){
+    title="Set a new password";
+    body=`${F("cp","New password (8+ characters)","password")}`;
+    foot="";
+  }else{
+    title="Sign in";
+    body=`${F("ce","Email address","email",ca.em)}
+      ${F("cp","Password","password")}`;
+    foot=`<div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn ghost" style="border-color:var(--amber);color:var(--amber);flex:1" onclick="caMode('signup')">Create account</button>
+      <button class="btn ghost" style="border-color:var(--dim);color:var(--dim);flex:1" onclick="caMode('forgot')">Forgot password</button></div>`;
+  }
+  app.innerHTML=`<div style="max-width:420px;margin:8vh auto 0;display:grid;gap:16px">
+    <div class="center" style="margin-bottom:4px">
+      <div style="font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:1px">CERT<span style="color:var(--amber)">://</span>COMMAND</div>
+      <div class="eyebrow" style="margin-top:4px">certification training console</div>
+    </div>
+    <div class="panel" style="display:grid;gap:12px">
+      <span class="eyebrow" style="color:var(--amber)">${title}</span>
+      ${body}
+      ${ca.err?`<span class="stat" style="color:var(--red);line-height:1.5">${esc(ca.err)}</span>`:""}
+      ${ca.msg?`<span class="stat" style="color:var(--cyan);line-height:1.5">${esc(ca.msg)}</span>`:""}
+      <button class="btn" ${ca.busy?"disabled":""} onclick="caSubmit()">${ca.busy?"Working…":(ca.mode==="signup"?"Create account":ca.mode==="forgot"?"Send reset link":ca.mode==="reset"?"Save password":"Sign in")}</button>
+      ${foot}
+    </div>
+    <div class="stat center" style="color:var(--dim);line-height:1.6">Your progress syncs to every device you sign in on.</div>
+  </div>`;
+  const f=document.getElementById(ca.mode==="signup"?"cf":ca.mode==="reset"?"cp":"ce");if(f&&f.focus)try{f.focus();}catch(e){}
+}
+window.caMode=function(m){ca={mode:m,err:"",msg:"",busy:false,resetToken:ca.resetToken,fn:ca.fn,ln:ca.ln,em:ca.em};render();};
+window.caSubmit=async function(){
+  const g=id=>((document.getElementById(id)||{}).value||"").trim();
+  /* capture values first — render() rebuilds the DOM and clears the fields */
+  const V={f:g("cf"),l:g("cl"),e:g("ce"),p:g("cp")};
+  ca.fn=V.f;ca.ln=V.l;ca.em=V.e;
+  ca.err="";ca.msg="";ca.busy=true;render();
+  try{
+    if(ca.mode==="signup"){
+      const r=await api("POST","/api/signup",{first:V.f,last:V.l,email:V.e,password:V.p});
+      ca.busy=false;
+      if(!r.ok){ca.err=r.data.error||"Could not create the account.";if(r.data.exists)ca.mode="signin";render();return;}
+      await cloudEnter(r.data.token,r.data.user);return;
+    }
+    if(ca.mode==="forgot"){
+      await api("POST","/api/forgot",{email:V.e});
+      ca.busy=false;ca.mode="signin";
+      ca.msg="If that email has an account, a reset link is on its way. Check your inbox.";render();return;
+    }
+    if(ca.mode==="reset"){
+      const r=await api("POST","/api/reset",{token:ca.resetToken,password:V.p});
+      ca.busy=false;
+      if(!r.ok){ca.err=r.data.error||"Could not reset the password.";render();return;}
+      history.replaceState({},"",location.pathname);
+      await cloudEnter(r.data.token,r.data.user);return;
+    }
+    const r=await api("POST","/api/login",{email:V.e,password:V.p});
+    ca.busy=false;
+    if(!r.ok){ca.err=r.data.error||"Could not sign in.";render();return;}
+    await cloudEnter(r.data.token,r.data.user);
+  }catch(e){ca.busy=false;ca.err="Can't reach the server. Check that it's running.";render();}
+};
+window.cloudSignOut=function(){save();if(cloud.token)syncPush(true);cloudSignedOut();ca={mode:"signin",err:"",msg:"",busy:false,resetToken:null};render();window.scrollTo(0,0);};
+window.resendVerify=async function(){
+  const r=await api("POST","/api/resend",null,cloud.token);
+  secMsg=r.ok?"Confirmation email sent — check your inbox.":"Could not send right now.";render();
+};
+window.syncNow=function(){syncPush(false);};
+
+async function bootCloud(){
+  const params=new URLSearchParams(location.search||"");
+  const rt=params.get("reset");
+  cloud.on=await probeApi();
+  if(!cloud.on){render();return;}          /* offline / static hosting: local profiles */
+  if(rt){ca={mode:"reset",err:"",msg:"",busy:false,resetToken:rt};render();return;}
+  const t=store.get("cc-token");
+  if(t){
+    const r=await api("GET","/api/me",null,t);
+    if(r.ok){await cloudEnter(t,r.data.user);return;}
+    store.set("cc-token","");
+  }
+  render();
+}
+
 /* ---------------- SIGN IN / PROFILES ---------------- */
+const QUESTIONS_SEC=["What was the make of your first car?","What street did you grow up on?","What was your first pet's name?","What was the name of your first employer?","What city were you born in?"];
+function genCode(){
+  const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const blk=()=>Array.from({length:4},()=>A[Math.floor(Math.random()*A.length)]).join("");
+  return "CERT-"+blk()+"-"+blk();
+}
+function norm(s){return (s||"").trim().toLowerCase().replace(/\s+/g," ");}
+function mailtoLink(p,code){
+  const subj=encodeURIComponent("CERT://COMMAND recovery code");
+  const body=encodeURIComponent("Recovery code for the profile \""+p.name+"\":\n\n"+code+"\n\nKeep this. If you forget your PIN, choose \"Forgot PIN\" on the sign-in screen and enter this code to set a new one.\n\nNote: this code only works in the browser where the profile lives.");
+  return "mailto:"+encodeURIComponent(p.email||"")+"?subject="+subj+"&body="+body;
+}
+
 function renderLogin(){
+  /* --- confirm the email address works --- */
+  if(lg.mode==="verify"){
+    const p=profiles.find(x=>x.id===lg.vFor)||{name:"",email:""};
+    const subj=encodeURIComponent("Your CERT://COMMAND confirmation code");
+    const body=encodeURIComponent("Confirmation code: "+lg.vCode+"\n\nEnter this in CERT://COMMAND to confirm this address for account recovery.\n\nAccount: "+p.name);
+    app.innerHTML=`<div style="max-width:460px;margin:8vh auto 0;display:grid;gap:16px">
+      <div class="center"><div style="font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:1px">CERT<span style="color:var(--amber)">://</span>COMMAND</div></div>
+      <div class="panel" style="display:grid;gap:12px;border:1px solid rgba(255,179,71,.4)">
+        <span class="eyebrow" style="color:var(--amber)">Confirm your email</span>
+        <p style="font-size:13.5px;line-height:1.6;color:var(--dim)">Send the code to <strong style="color:var(--text)">${esc(p.email)}</strong>, then type it back here. This confirms the address is right and reachable, so your recovery mail actually lands.</p>
+        <a class="btn" href="mailto:${encodeURIComponent(p.email)}?subject=${subj}&body=${body}" onclick="vSend()" style="text-decoration:none;text-align:center">✉ Send my code</a>
+        ${lg.sent?`<input id="v-in" inputmode="numeric" maxlength="6" placeholder="6-digit code from your inbox" onkeydown="if(event.key==='Enter')vCheck()"
+          style="background:var(--panel2);border:1px solid ${lg.err?'var(--red)':'var(--line)'};border-radius:10px;color:var(--text);font-size:16px;padding:12px 14px;outline:none;font-family:var(--mono);letter-spacing:3px;text-align:center">
+          ${lg.err?`<span class="stat" style="color:var(--red)">${esc(lg.err)}</span>`:''}
+          <button class="btn" onclick="vCheck()">Confirm</button>`:''}
+        <button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="vSkip()">Skip — confirm later from My stats</button>
+        <span class="stat" style="color:var(--dim);line-height:1.5">Heads up: this runs entirely in your browser, so it checks that your address works — it isn't a server-verified identity.</span>
+      </div></div>`;
+    const f=document.getElementById("v-in");if(f&&f.focus)try{f.focus();}catch(e){}
+    return;
+  }
+  /* --- recovery-code handoff right after creating a PIN-protected profile --- */
+  if(lg.mode==="code"){
+    const p=profiles.find(x=>x.id===lg.codeFor)||{name:""};
+    app.innerHTML=`<div style="max-width:460px;margin:8vh auto 0;display:grid;gap:16px">
+      <div class="center"><div style="font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:1px">CERT<span style="color:var(--amber)">://</span>COMMAND</div></div>
+      <div class="panel" style="display:grid;gap:12px;border:1px solid rgba(255,179,71,.4)">
+        <span class="eyebrow" style="color:var(--amber)">Save your recovery code</span>
+        <p style="font-size:13.5px;line-height:1.6;color:var(--dim)">This is the only way back in if you forget your PIN. Email it to yourself now — it takes five seconds and saves a headache later.</p>
+        <div style="font-family:var(--mono);font-size:21px;font-weight:700;letter-spacing:2px;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px;color:var(--amber)">${esc(lg.newCode)}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a class="btn" href="${mailtoLink(p,lg.newCode)}" style="text-decoration:none;display:inline-block">✉ Email it to me</a>
+          <button class="btn ghost" style="border-color:var(--cyan);color:var(--cyan)" onclick="copyCode('${lg.newCode}')">${lg.copied?"✓ Copied":"Copy code"}</button>
+        </div>
+        ${p.q!=null?`<div class="stat" style="color:var(--dim)">Backup: you can also recover by answering “${esc(QUESTIONS_SEC[p.q])}”</div>`:''}
+        <button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="codeDone()">I've saved it — continue</button>
+      </div></div>`;
+    return;
+  }
+
+  /* --- forgot-PIN recovery --- */
+  if(lg.mode==="recover"){
+    const p=profiles.find(x=>x.id===lg.recFor);
+    let body="";
+    if(!p.rc&&p.q==null){
+      body=`<p style="font-size:13.5px;line-height:1.6;color:var(--dim)">This profile was made before recovery existed, so there's no code or question on file. Sign in with your PIN, then add recovery from <strong style="color:var(--text)">My stats → Security</strong>.</p>`;
+    }else if(lg.recStep==="newpin"){
+      body=`<p style="font-size:13.5px;line-height:1.6;color:var(--cyan)">Verified. Set a new PIN.</p>
+        <input id="rp-in" type="password" inputmode="numeric" maxlength="6" placeholder="New PIN (or leave blank to remove)" onkeydown="if(event.key==='Enter')recSetPin()"
+          style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:14px;padding:12px 14px;outline:none;font-family:var(--mono)">
+        <button class="btn" onclick="recSetPin()">Save new PIN</button>`;
+    }else{
+      const useQ=lg.recMethod==="question"&&p.q!=null;
+      body=`${p.rc?`<div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn ghost" style="border-color:${!useQ?'var(--amber)':'var(--line)'};color:${!useQ?'var(--amber)':'var(--dim)'};font-size:11px;padding:8px 13px" onclick="recMethod('code')">Recovery code</button>
+          ${p.q!=null?`<button class="btn ghost" style="border-color:${useQ?'var(--amber)':'var(--line)'};color:${useQ?'var(--amber)':'var(--dim)'};font-size:11px;padding:8px 13px" onclick="recMethod('question')">Security question</button>`:''}
+        </div>`:''}
+        ${useQ||!p.rc
+          ?`<label class="stat" style="color:var(--dim)">${esc(QUESTIONS_SEC[p.q])}</label>
+            <input id="rc-in" placeholder="Your answer" onkeydown="if(event.key==='Enter')recVerify()"
+              style="background:var(--panel2);border:1px solid ${lg.err?'var(--red)':'var(--line)'};border-radius:10px;color:var(--text);font-size:15px;padding:12px 14px;outline:none;font-family:var(--sans)">`
+          :`<label class="stat" style="color:var(--dim)">Enter the recovery code you saved (check your email for “CERT://COMMAND recovery code”)</label>
+            <input id="rc-in" placeholder="CERT-XXXX-XXXX" autocapitalize="characters" onkeydown="if(event.key==='Enter')recVerify()"
+              style="background:var(--panel2);border:1px solid ${lg.err?'var(--red)':'var(--line)'};border-radius:10px;color:var(--text);font-size:15px;padding:12px 14px;outline:none;font-family:var(--mono);letter-spacing:1px">`}
+        ${lg.err?`<span class="stat" style="color:var(--red)">${esc(lg.err)}</span>`:''}
+        <button class="btn" onclick="recVerify()">Verify</button>`;
+    }
+    app.innerHTML=`<div style="max-width:460px;margin:8vh auto 0;display:grid;gap:16px">
+      <div class="center"><div style="font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:1px">CERT<span style="color:var(--amber)">://</span>COMMAND</div></div>
+      <div class="panel" style="display:grid;gap:12px">
+        <span class="eyebrow" style="color:var(--amber)">Recover ${esc(p.name)}'s PIN</span>
+        ${body}
+        <button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="lgMode('list')">Back to sign in</button>
+      </div>
+      <div class="stat center" style="color:var(--dim);line-height:1.6">Your progress is never at risk here — it stays saved either way.</div></div>`;
+    const f=document.getElementById(lg.recStep==="newpin"?"rp-in":"rc-in");if(f&&f.focus)try{f.focus();}catch(e){}
+    return;
+  }
+
   let list="";
   profiles.forEach(p=>{
     const pinOpen=lg.pinFor===p.id;
-    list+=`<div class="panel" style="padding:12px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <button onclick="loginSelect('${p.id}')" style="display:flex;align-items:center;gap:12px;background:none;border:none;cursor:pointer;color:var(--text);flex:1;text-align:left;min-width:160px">
+    list+=`<div class="panel" style="padding:12px 14px;display:grid;gap:10px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <button onclick="loginSelect('${p.id}')" style="display:flex;align-items:center;gap:12px;background:none;border:none;cursor:pointer;color:var(--text);flex:1;text-align:left;min-width:150px">
         <span style="width:42px;height:42px;border-radius:50%;background:${p.color};color:#0B1220;display:flex;align-items:center;justify-content:center;font-weight:800;font-family:var(--mono);font-size:15px">${esc(initials(p.name))}</span>
         <span><span style="font-weight:700;font-size:15px">${esc(p.name)}</span><br>
-        <span class="stat" style="color:var(--dim)">${p.pin?"🔒 PIN protected":"tap to continue"}</span></span>
+        <span class="stat" style="color:var(--dim)">${esc(p.email||"")}${p.email?" · ":""}${p.verified?'<span style="color:var(--cyan)">✓ confirmed</span>':""}${p.pin?" 🔒":""}</span></span>
       </button>
       ${pinOpen?`<span style="display:flex;gap:8px;align-items:center">
         <input id="pin-in" type="password" inputmode="numeric" maxlength="6" placeholder="PIN" onkeydown="if(event.key==='Enter')loginPin('${p.id}')"
           style="width:90px;background:var(--panel2);border:1px solid ${lg.err?'var(--red)':'var(--line)'};border-radius:9px;color:var(--text);font-family:var(--mono);font-size:14px;padding:9px 11px;outline:none">
         <button class="btn" style="font-size:11px;padding:9px 14px" onclick="loginPin('${p.id}')">Enter</button></span>`:''}
+      </div>
+      ${pinOpen?`<button onclick="lgRecover('${p.id}')" style="background:none;border:none;cursor:pointer;color:var(--amber);font-family:var(--mono);font-size:11px;text-align:left;padding:0">Forgot PIN?</button>`:''}
     </div>`;
   });
   const create=lg.mode==="create"?`
-    <div class="panel" style="display:grid;gap:12px">
-      <span class="eyebrow" style="color:var(--amber)">Create your free profile</span>
-      <input id="nm-in" value="${esc(lg.nm)}" placeholder="Your name" maxlength="24" onkeydown="if(event.key==='Enter')loginCreate()"
-        style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:15px;padding:12px 14px;outline:none;font-family:var(--sans)">
+    <div class="panel" style="display:grid;gap:11px">
+      <span class="eyebrow" style="color:var(--amber)">Create your free account</span>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        <input id="fn-in" value="${esc(lg.fn||"")}" placeholder="First name" maxlength="20" onkeydown="if(event.key==='Enter')loginCreate()"
+          style="flex:1;min-width:120px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:15px;padding:12px 14px;outline:none;font-family:var(--sans)">
+        <input id="ln-in" value="${esc(lg.ln||"")}" placeholder="Last name" maxlength="20" onkeydown="if(event.key==='Enter')loginCreate()"
+          style="flex:1;min-width:120px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:15px;padding:12px 14px;outline:none;font-family:var(--sans)">
+      </div>
+      <input id="em-in" type="email" value="${esc(lg.em||"")}" placeholder="Email address" onkeydown="if(event.key==='Enter')loginCreate()"
+        style="background:var(--panel2);border:1px solid ${lg.errField==="em"?'var(--red)':'var(--line)'};border-radius:10px;color:var(--text);font-size:15px;padding:12px 14px;outline:none;font-family:var(--sans)">
       <input id="npin-in" type="password" inputmode="numeric" maxlength="6" placeholder="Optional PIN (keeps others out of your stats)" onkeydown="if(event.key==='Enter')loginCreate()"
         style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:14px;padding:12px 14px;outline:none;font-family:var(--mono)">
-      ${lg.err?`<span class="stat" style="color:var(--red)">${esc(lg.err)}</span>`:''}
-      <div style="display:flex;gap:10px"><button class="btn" onclick="loginCreate()">Create profile</button>
+      <select id="q-in" style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:13.5px;padding:12px 14px;outline:none;font-family:var(--sans)">
+        <option value="">Security question (optional backup)…</option>
+        ${QUESTIONS_SEC.map((q,i)=>`<option value="${i}">${esc(q)}</option>`).join("")}
+      </select>
+      <input id="qa-in" placeholder="Answer to the question above" onkeydown="if(event.key==='Enter')loginCreate()"
+        style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:14px;padding:12px 14px;outline:none;font-family:var(--sans)">
+      ${lg.err?`<div class="panel" style="padding:11px 13px;border-color:var(--red);background:rgba(244,99,78,.08);display:grid;gap:9px">
+        <span class="stat" style="color:var(--red);line-height:1.5">${esc(lg.err)}</span>
+        ${lg.dupId?`<button class="btn" style="font-size:11px;padding:9px 14px" onclick="lgGoSignIn('${lg.dupId}')">Sign in as ${esc((profiles.find(x=>x.id===lg.dupId)||{}).name||"")} instead</button>`:''}
+      </div>`:''}
+      <div style="display:flex;gap:10px"><button class="btn" onclick="loginCreate()">Create account</button>
       ${profiles.length?`<button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="lgMode('list')">Back</button>`:''}</div>
     </div>`:"";
   app.innerHTML=`<div style="max-width:460px;margin:8vh auto 0;display:grid;gap:16px">
@@ -2042,6 +2376,28 @@ function renderLogin(){
 }
 window.lgRem=function(){lg.rem=!lg.rem;render();};
 window.lgMode=function(m){lg={mode:m,pinFor:null,err:"",nm:"",pin:"",rem:lg.rem};render();};
+window.lgRecover=function(id){lg={mode:"recover",recFor:id,recStep:"verify",recMethod:"code",err:"",rem:lg.rem};render();};
+window.recMethod=function(m){lg.recMethod=m;lg.err="";render();};
+window.copyCode=function(c){try{navigator.clipboard.writeText(c);}catch(e){}lg.copied=true;render();};
+window.codeDone=function(){const id=lg.codeFor;lg={mode:"list",pinFor:null,err:"",nm:"",pin:"",rem:lg.rem};enterProfile(id);};
+window.recVerify=function(){
+  const p=profiles.find(x=>x.id===lg.recFor);
+  const v=(document.getElementById("rc-in")||{}).value||"";
+  const useQ=(lg.recMethod==="question"&&p.q!=null)||!p.rc;
+  const ok=useQ?(p.qa&&hpin(norm(v))===p.qa):(p.rc&&hpin(norm(v).toUpperCase().replace(/\s/g,""))===p.rc);
+  if(ok){lg.recStep="newpin";lg.err="";}
+  else lg.err=useQ?"That answer doesn't match.":"That code doesn't match. Check the email you sent yourself.";
+  render();
+};
+window.recSetPin=function(){
+  const p=profiles.find(x=>x.id===lg.recFor);
+  const v=((document.getElementById("rp-in")||{}).value||"").trim();
+  p.pin=v?hpin(v):null;
+  saveProfiles();
+  const id=p.id;
+  lg={mode:"list",pinFor:null,err:"",nm:"",pin:"",rem:lg.rem};
+  enterProfile(id);
+};
 window.loginSelect=function(id){
   const p=profiles.find(x=>x.id===id);if(!p)return;
   if(p.pin){lg.pinFor=(lg.pinFor===id?null:id);lg.err="";render();return;}
@@ -2054,25 +2410,86 @@ window.loginPin=function(id){
   else{lg.err="wrong";render();}
 };
 window.loginCreate=function(){
-  const nm=((document.getElementById("nm-in")||{}).value||"").trim();
-  const pin=((document.getElementById("npin-in")||{}).value||"").trim();
-  lg.nm=nm;
-  if(nm.length<2){lg.err="Name needs at least 2 characters.";render();return;}
-  if(profiles.some(p=>p.name.toLowerCase()===nm.toLowerCase())){lg.err="That name is taken on this device.";render();return;}
+  const g=id=>((document.getElementById(id)||{}).value||"").trim();
+  const fn=g("fn-in"), ln=g("ln-in"), em=g("em-in"), pin=g("npin-in"), qi=g("q-in"), qa=g("qa-in");
+  lg.fn=fn;lg.ln=ln;lg.em=em;lg.dupId=null;lg.errField=null;
+  const fail=(msg,field,dup)=>{lg.err=msg;lg.errField=field||null;lg.dupId=dup||null;render();};
+  if(fn.length<2)return fail("Enter your first name.");
+  if(ln.length<1)return fail("Enter your last name.");
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em))return fail("That doesn't look like a valid email address.","em");
+  const dupE=profiles.find(p=>norm(p.email||"")===norm(em));
+  if(dupE)return fail("An account with that email already exists on this device.","em",dupE.id);
+  const full=fn+" "+ln;
+  const dupN=profiles.find(p=>norm(p.name)===norm(full));
+  if(dupN)return fail("An account for "+dupN.name+" already exists on this device.",null,dupN.id);
+  if(qi!==""&&!qa)return fail("Add an answer to your security question (or clear the question).");
   const id="p"+Date.now().toString(36);
-  const p={id,name:nm,color:AVCOLORS[profiles.length%AVCOLORS.length],pin:pin?hpin(pin):null,created:Date.now()};
+  const p={id,name:full,first:fn,last:ln,email:em,color:AVCOLORS[profiles.length%AVCOLORS.length],
+    pin:pin?hpin(pin):null,created:Date.now(),verified:false};
+  if(qi!==""){p.q=parseInt(qi,10);p.qa=hpin(norm(qa));}
+  const code=pin?genCode():null;
+  if(code)p.rc=hpin(code);
   const firstEver=profiles.length===0;
-  profiles.push(p);currentPid=id;saveProfiles();setRemember(lg.rem);
-  /* migrate pre-profile progress into the first profile so nothing is lost */
+  profiles.push(p);
+  const vcode=String(Math.floor(100000+Math.random()*900000));
+  p.vc=hpin(vcode);
+  currentPid=id;saveProfiles();setRemember(lg.rem);
   if(firstEver&&store.get("cc-stats")){
     store.set(pkey("stats"),store.get("cc-stats"));
     if(store.get("cc-qstats"))store.set(pkey("qstats"),store.get("cc-qstats"));
   }
   load();lastActive=Date.now();sessionStart=Date.now();
-  go({screen:"home"});
+  lg={mode:"verify",vFor:id,vCode:vcode,newCode:code,err:"",sent:false,rem:lg.rem};
+  render();
 };
+window.lgGoSignIn=function(id){lg={mode:"list",pinFor:id,err:"",nm:"",pin:"",rem:lg.rem};render();};
+window.vSend=function(){lg.sent=true;render();};
+window.vCheck=function(){
+  const p=profiles.find(x=>x.id===lg.vFor);
+  const v=((document.getElementById("v-in")||{}).value||"").trim();
+  if(hpin(v)===p.vc){p.verified=true;delete p.vc;saveProfiles();vDone();}
+  else{lg.err="That code doesn't match what was sent.";render();}
+};
+window.vSkip=function(){vDone();};
+function vDone(){
+  const id=lg.vFor, code=lg.newCode;
+  if(code){lg={mode:"code",codeFor:id,newCode:code,copied:false,rem:lg.rem};render();}
+  else{lg={mode:"list",pinFor:null,err:"",nm:"",pin:"",rem:lg.rem};enterProfile(id);}
+}
 function enterProfile(id){currentPid=id;setRemember(lg.rem);load();lg={mode:"list",pinFor:null,err:"",nm:"",pin:"",rem:false};lastActive=Date.now();sessionStart=Date.now();go({screen:"home"});}
 window.switchProfile=function(){save();setRemember(false);currentPid=null;lg={mode:"list",pinFor:null,err:"",nm:"",pin:"",rem:false};render();window.scrollTo(0,0);};
+
+/* ---- security panel actions (from My stats) ---- */
+let secMsg="";
+window.secNewCode=function(){
+  const p=profiles.find(x=>x.id===currentPid);
+  const code=genCode();p.rc=hpin(code);saveProfiles();
+  lg.shownCode=code;secMsg="";render();
+};
+window.secSetPin=function(){
+  const p=profiles.find(x=>x.id===currentPid);
+  const v=((document.getElementById("sp-in")||{}).value||"").trim();
+  p.pin=v?hpin(v):null;saveProfiles();
+  secMsg=v?"PIN updated.":"PIN removed.";
+  if(v&&!p.rc){const code=genCode();p.rc=hpin(code);saveProfiles();lg.shownCode=code;}
+  render();
+};
+window.secSetEmail=function(){
+  const p=profiles.find(x=>x.id===currentPid);
+  const v=((document.getElementById("se-in")||{}).value||"").trim()||null;
+  if(v&&!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)){secMsg="That doesn't look like a valid email address.";render();return;}
+  if(norm(v||"")!==norm(p.email||""))p.verified=false;
+  p.email=v;saveProfiles();
+  secMsg="Email saved.";render();
+};
+window.secSetQ=function(){
+  const p=profiles.find(x=>x.id===currentPid);
+  const qi=((document.getElementById("sq-in")||{}).value||"");
+  const qa=((document.getElementById("sqa-in")||{}).value||"").trim();
+  if(qi===""||!qa){secMsg="Pick a question and enter an answer.";render();return;}
+  p.q=parseInt(qi,10);p.qa=hpin(norm(qa));saveProfiles();
+  secMsg="Security question saved.";render();
+};
 
 /* ---------------- STATS PAGE + ACTIVITY CALENDAR ---------------- */
 let stM=0;
@@ -2111,7 +2528,9 @@ function calHtml(){
       <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(63,214,198,.55);vertical-align:middle"></span> goal met</span></div>`;
 }
 function renderStats(){
-  const p=profiles.find(x=>x.id===currentPid)||{name:"?",color:"var(--amber)",created:Date.now()};
+  const p=cloud.on&&cloud.user
+    ?{name:cloud.user.name,color:AVCOLORS[0],created:cloud.user.created,email:cloud.user.email,verified:cloud.user.verified}
+    :(profiles.find(x=>x.id===currentPid)||{name:"?",color:"var(--amber)",created:Date.now(),email:null});
   const totalMin=Object.values(stats.days).reduce((s,d)=>s+(d.m||0),0);
   const totalAns=Object.values(stats.perTrack).reduce((s,t)=>s+t.seen,0);
   const totalCor=Object.values(stats.perTrack).reduce((s,t)=>s+t.correct,0);
@@ -2139,7 +2558,7 @@ function renderStats(){
       <span style="width:56px;height:56px;border-radius:50%;background:${p.color};color:#0B1220;display:flex;align-items:center;justify-content:center;font-weight:800;font-family:var(--mono);font-size:20px">${esc(initials(p.name))}</span>
       <div style="flex:1;min-width:150px"><div style="font-size:20px;font-weight:800">${esc(p.name)}</div>
         <div class="stat" style="color:var(--dim)">studying since ${since} · ${activeDays} active days</div></div>
-      <button class="btn ghost" style="border-color:var(--dim);color:var(--dim);font-size:11px;padding:9px 14px" onclick="switchProfile()">Switch profile</button>
+      <button class="btn ghost" style="border-color:var(--dim);color:var(--dim);font-size:11px;padding:9px 14px" onclick="${cloud.on?'cloudSignOut()':'switchProfile()'}">${cloud.on?"Sign out":"Switch profile"}</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">
       ${tile("Total XP",stats.xp,"var(--amber)")}
@@ -2162,6 +2581,45 @@ function renderStats(){
           <div>Commands solved <span style="color:var(--green);float:right">${CMDS.filter(c=>stats.cmd[c.id]===true).length}/${CMDS.length}</span></div>
           <div>Labs complete <span style="color:var(--red);float:right">${LABS.filter(l=>stats.labs[l.id]).length}/${LABS.length}</span></div>
         </div>
+        ${cloud.on?`<div class="panel" style="display:grid;gap:10px">
+          <span class="eyebrow">Account</span>
+          <div class="stat" style="color:var(--dim)">${esc((cloud.user||{}).email||"")}</div>
+          <div class="stat" style="color:${(cloud.user||{}).verified?'var(--cyan)':'var(--amber)'}">${(cloud.user||{}).verified?"✓ Email confirmed":"Email not confirmed yet"}</div>
+          ${!(cloud.user||{}).verified?`<button class="btn ghost" style="border-color:var(--amber);color:var(--amber);font-size:11px;padding:9px 14px" onclick="resendVerify()">Resend confirmation email</button>`:""}
+          <div class="stat" style="color:var(--dim)">${cloud.lastSync?"Last synced "+new Date(cloud.lastSync).toLocaleTimeString():"Not synced yet"}</div>
+          <button class="btn ghost" style="border-color:var(--cyan);color:var(--cyan);font-size:11px;padding:9px 14px" onclick="syncNow()">Sync now</button>
+          ${secMsg?`<span class="stat" style="color:var(--cyan)">${esc(secMsg)}</span>`:""}
+          <span class="stat" style="color:var(--dim);line-height:1.5">Signed in through your server — this progress follows you to every device.</span>
+        </div>`:`
+        <div class="panel" style="display:grid;gap:11px">
+          <span class="eyebrow">Security &amp; recovery</span>
+          ${lg.shownCode?`<div style="display:grid;gap:8px">
+            <div style="font-family:var(--mono);font-size:17px;font-weight:700;letter-spacing:2px;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:13px;color:var(--amber)">${esc(lg.shownCode)}</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <a class="btn" href="${mailtoLink(p,lg.shownCode)}" style="text-decoration:none;font-size:11px;padding:9px 14px">✉ Email it to me</a>
+              <button class="btn ghost" style="border-color:var(--cyan);color:var(--cyan);font-size:11px;padding:9px 14px" onclick="copyCode('${lg.shownCode}')">${lg.copied?"✓ Copied":"Copy"}</button></div>
+            <span class="stat" style="color:var(--dim)">Save it now — it won't be shown again.</span></div>`:
+            `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+              <span class="stat" style="color:var(--dim)">Recovery code ${p.rc?"is set":"not set"}</span>
+              <button class="btn ghost" style="border-color:var(--amber);color:var(--amber);font-size:11px;padding:8px 13px" onclick="secNewCode()">${p.rc?"Generate a new one":"Create one"}</button></div>`}
+          <div class="stat" style="color:${p.verified?'var(--cyan)':'var(--dim)'}">${p.verified?"✓ Email confirmed":"Email not confirmed yet"}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input id="se-in" value="${esc(p.email||"")}" placeholder="Recovery email" style="flex:1;min-width:150px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text);font-size:13px;padding:9px 12px;outline:none;font-family:var(--sans)">
+            <button class="btn ghost" style="border-color:var(--dim);color:var(--dim);font-size:11px;padding:9px 13px" onclick="secSetEmail()">Save</button></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input id="sp-in" type="password" inputmode="numeric" maxlength="6" placeholder="${p.pin?"New PIN (blank removes it)":"Set a PIN"}" style="flex:1;min-width:150px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text);font-size:13px;padding:9px 12px;outline:none;font-family:var(--mono)">
+            <button class="btn ghost" style="border-color:var(--dim);color:var(--dim);font-size:11px;padding:9px 13px" onclick="secSetPin()">Update</button></div>
+          <div style="display:grid;gap:8px">
+            <select id="sq-in" style="background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text);font-size:12.5px;padding:9px 12px;outline:none;font-family:var(--sans)">
+              <option value="">Security question${p.q!=null?" (currently set)":""}…</option>
+              ${QUESTIONS_SEC.map((q,i)=>`<option value="${i}"${p.q===i?" selected":""}>${esc(q)}</option>`).join("")}
+            </select>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <input id="sqa-in" placeholder="Answer" style="flex:1;min-width:150px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text);font-size:13px;padding:9px 12px;outline:none;font-family:var(--sans)">
+              <button class="btn ghost" style="border-color:var(--dim);color:var(--dim);font-size:11px;padding:9px 13px" onclick="secSetQ()">Save</button></div></div>
+          ${secMsg?`<span class="stat" style="color:var(--cyan)">${esc(secMsg)}</span>`:''}
+          <span class="stat" style="color:var(--dim);line-height:1.5">The PIN keeps other people on this device out of your stats. It isn't encryption — don't reuse a password you care about.</span>
+        </div>`}
       </div>
     </div>
     <div class="nav"><button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="go({screen:'home'})">← Dashboard</button></div>
@@ -2171,13 +2629,15 @@ function renderStats(){
 
 /* ---------------- ROUTER ---------------- */
 function render(){
-  if(!currentPid){renderLogin();return;}
+  if(cloud.on&&!cloud.token){renderCloudAuth();return;}
+  if(!currentPid||lg.mode==="code"||lg.mode==="verify"){renderLogin();return;}
+  if(S.screen!=="stats"){lg.shownCode=null;lg.copied=false;secMsg="";}
   switch(S.screen){
     case"home":clearInterval(bzTimer);clearInterval(exTimer);renderHome();break;
     case"levels":renderLevels();break;
-    case"diag":if(!dg.deck||dg.report||dg.track!==(S.track||null)||S.fresh){startDiag(S.track);S.fresh=false;}renderDiag();break;
+    case"diag":if(!dg.deck||dg.track!==(S.track||null)||S.fresh){startDiag(S.track);S.fresh=false;}renderDiag();break;
     case"diagReport":renderDiagReport();break;
-    case"gate":if(gt.track!==S.track||gt.level!==S.level||gt.report||S.fresh){startGate(S.track,S.level);S.fresh=false;}renderGate();break;
+    case"gate":if(!gt.deck||gt.track!==S.track||gt.level!==S.level||S.fresh){startGate(S.track,S.level);S.fresh=false;}renderGate();break;
     case"stats":renderStats();break;
     case"cmdlab":if(cl.track!==S.track||!cl.deck||S.fresh){startCmd(S.track);S.fresh=false;}renderCmd();break;
     case"lab":if(!lb.lab||lb.lab.id!==S.id||lb.done&&S.fresh||S.fresh){startLab(S.id);S.fresh=false;}renderLab();break;
@@ -2189,7 +2649,7 @@ function render(){
     case"exam":if(!ex.deck||ex.done||ex.track!==S.track||S.fresh){startExam(S.track);S.fresh=false;}renderExam();break;
     case"examReport":renderExamReport();break;
     case"scenList":renderScenList();break;
-    case"scen":if(sc.id!==S.id||S.fresh){sc={id:S.id,picked:null};S.fresh=false;}renderScenario();break;
+    case"scen":if(sc.id!==S.id||S.fresh){sc={id:S.id,picked:null,back:S.back||null};S.fresh=false;}renderScenario();break;
     case"explain":if(!epx.deck||S.fresh){startExplain();S.fresh=false;}renderExplain();break;
     case"missed":renderMissed();break;
   }
@@ -2201,6 +2661,7 @@ window.go=function(v){v.fresh=true;_go(v);};
 loadProfiles();
 if(currentPid)load();
 render();
+bootCloud();
 </script>
 </body>
 </html>
