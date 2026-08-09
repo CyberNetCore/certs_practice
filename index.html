@@ -1834,6 +1834,13 @@ function recordAnswer(q,correct){
   save();
 }
 function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+/* Randomise which letter the right answer sits on, EVERY time a question is shown.
+   Returns a copy — the original bank is never mutated, so ids and reports stay stable. */
+function shuf(q){
+  const order=shuffle(q.a.map((_,i)=>i));
+  return {...q, a:order.map(i=>q.a[i]), c:order.indexOf(q.c)};
+}
+const shufAll=list=>list.map(shuf);
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function layerOf(xp){return Math.min(7,Math.floor(xp/XP_LAYER)+1);}
 
@@ -2035,7 +2042,7 @@ function diagDeck(track){
   });
   return shuffle(deck);
 }
-function startDiag(track){dg={track:track||null,deck:diagDeck(track),i:0,answers:[]};}
+function startDiag(track){dg={track:track||null,deck:shufAll(diagDeck(track)),i:0,answers:[]};}
 function renderDiag(){
   const q=dg.deck[dg.i], t=TRACKS[q.t];
   let opts="";
@@ -2174,7 +2181,7 @@ function renderLevels(){
 /* ---------------- WRITTEN LEVEL CHECK ---------------- */
 let gt={};
 function startGate(track,level){
-  const qs=shuffle(Q.filter(q=>q.t===track&&lvOf(q)===level)).slice(0,10);
+  const qs=shufAll(shuffle(Q.filter(q=>q.t===track&&lvOf(q)===level)).slice(0,10));
   gt={track,level,deck:qs,i:0,answers:[],report:null};
 }
 function renderGate(){
@@ -2377,7 +2384,7 @@ window.cmdNav=function(d){cl.i+=d;cl.state=stats.cmd[cl.deck[cl.i].id]===true?"r
 /* ---------------- QUIZ (also powers Smart Review) ---------------- */
 let quiz={};
 function startQuiz(track,smart,level){
-  const deck=smart?smartDeck(15):shuffle(Q.filter(q=>q.t===track&&(!level||lvOf(q)===level)));
+  const deck=shufAll(smart?smartDeck(15):shuffle(Q.filter(q=>q.t===track&&(!level||lvOf(q)===level))));
   quiz={deck,i:0,picked:null,streak:0,score:0,track,smart,level};
 }
 function renderQuiz(){
@@ -2457,7 +2464,7 @@ window.gradeCard=function(knew){
 let bz={},bzTimer=null;
 function startBlitz(){
   clearInterval(bzTimer);
-  bz={deck:shuffle(Q),i:0,score:0,time:60,over:false};
+  bz={deck:shufAll(shuffle(Q)),i:0,score:0,time:60,over:false};
   bzTimer=setInterval(()=>{
     bz.time--;
     if(bz.time<=0){clearInterval(bzTimer);bz.over=true;
@@ -2529,7 +2536,7 @@ function startExam(track){
     const rest=shuffle(all.filter(q=>!pool.includes(q)));
     pool.push(...rest.slice(0,t.examQ-pool.length));
   }
-  pool=shuffle(pool).slice(0,t.examQ);
+  pool=shufAll(shuffle(pool).slice(0,t.examQ));
   ex={track,deck:pool,i:0,answers:new Array(pool.length).fill(null),flags:new Set(),time:t.examMin*60,done:false};
   exTimer=setInterval(()=>{
     ex.time--;
@@ -2668,7 +2675,7 @@ function renderScenario(){
   s.steps.forEach((st,i)=>{steps+=`<div style="display:flex;gap:12px;align-items:flex-start;line-height:1.55;font-size:14px">
     <span style="font-family:var(--mono);color:${t.hex};min-width:20px;padding-top:1px">${i+1}.</span><span>${esc(st)}</span></div>`;});
   let qh="";
-  const cq=s.q;
+  const cq=sc.q||s.q;
   let opts="";
   cq.a.forEach((opt,i)=>{
     let cls="opt",mk=String.fromCharCode(65+i);
@@ -2708,7 +2715,7 @@ function renderScenario(){
 }
 window.scenPick=function(i){
   if(sc.picked!==null&&sc.picked!==undefined)return;
-  const s=SCEN.find(x=>x.id===sc.id), cq=s.q;
+  const s=SCEN.find(x=>x.id===sc.id), cq=sc.q||s.q;
   sc.picked=i;
   const ok=i===cq.c;
   if(ok)stats.xp+=25;
@@ -3969,7 +3976,7 @@ function render(){
     case"exam":if(!ex.deck||ex.done||ex.track!==S.track||S.fresh){startExam(S.track);S.fresh=false;}renderExam();break;
     case"examReport":renderExamReport();break;
     case"scenList":renderScenList();break;
-    case"scen":if(sc.id!==S.id||S.fresh){sc={id:S.id,picked:null,back:S.back||null};S.fresh=false;}renderScenario();break;
+    case"scen":if(sc.id!==S.id||S.fresh){const _s=SCEN.find(x=>x.id===S.id);sc={id:S.id,picked:null,back:S.back||null,q:_s?shuf(_s.q):null};S.fresh=false;}renderScenario();break;
     case"explain":if(!epx.deck||S.fresh){startExplain();S.fresh=false;}renderExplain();break;
     case"missed":renderMissed();break;
   }
