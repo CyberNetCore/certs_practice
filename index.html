@@ -1467,6 +1467,21 @@ window.gatePick=function(idx){
   renderGate();
 };
 
+/* Turn a matcher into the command a human should type.
+   Optional groups expand to their full form: sh(ow)? ip ospf nei(ghbor)? -> show ip ospf neighbor */
+function ansOf(o){
+  if(o.ans)return o.ans;
+  return String(o.ac[0].source)
+    .replace(/^\^|\$$/g,"")
+    .replace(/\(\s*\\S\+\s*\)\?/g," ")   /* optional free-form argument */
+    .replace(/\\S\+/g,"")
+    .replace(/\.\*/g,"")
+    .replace(/\\(.)/g,"$1")                /* unescape literals: \/ \. -> / . */
+    .replace(/[()?]/g,"")                 /* keep group CONTENTS, drop the syntax */
+    .replace(/\s+/g," ")
+    .trim();
+}
+
 /* ---------------- COMMAND LAB ---------------- */
 let cl={};
 function startCmd(track){
@@ -1490,7 +1505,7 @@ function renderCmd(){
       ${cl.tries>=2?`<div class="explain bad" style="margin-top:12px"><span class="tag" style="color:var(--amber)">Hint</span><div style="margin-top:6px">${esc(c.hint)}</div></div>`:''}`;
   }else if(cl.state==="revealed"){
     feedback=`<div class="explain bad" style="margin-top:12px"><span class="tag" style="color:var(--red)">Answer</span>
-      <div style="margin-top:6px;font-family:var(--mono)">${esc(c.ac[0].source.replace(/[\^\$]/g,"").replace(/\\/g,"").replace(/\(.*?\)\?/g,"").replace(/ ?\?/g,""))}</div>
+      <div style="margin-top:6px;font-family:var(--mono)">${esc(ansOf(c))}</div>
       <div style="margin-top:8px">${esc(c.why)}</div></div>`;
   }
   const solvedCount=cl.deck.filter(x=>stats.cmd[x.id]).length;
@@ -1992,7 +2007,7 @@ function renderLab(){
     ${lb.tries>=2?`<div class="explain bad" style="margin-top:10px"><span class="tag" style="color:var(--amber)">Hint</span><div style="margin-top:6px">${esc(st.hint)}</div></div>`:''}`;
   }else if(lb.state==="revealed"){
     feedback=`<div class="explain bad" style="margin-top:10px"><span class="tag" style="color:var(--red)">Answer</span>
-      <div style="margin-top:6px;font-family:var(--mono)">${esc(st.ac[0].source.replace(/[\^\$]/g,"").replace(/\\/g,"").replace(/\(.*?\)\? ?/g,"").replace(/ ?\?/g,""))}</div>
+      <div style="margin-top:6px;font-family:var(--mono)">${esc(ansOf(st))}</div>
       <div style="margin-top:6px;font-size:12px;color:var(--dim)">Type it to continue — muscle memory is the point.</div></div>`;
   }
   app.innerHTML=header()+`<div style="max-width:720px;margin:0 auto">
