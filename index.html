@@ -864,6 +864,314 @@ ac:[/^show system lldp neighbor$/],hint:"It lives under 'system' here, not 'rout
 ];
 Array.prototype.push.apply(CMDS,CMDX);
 
+/* ============================ COMMAND SANDBOX ============================ */
+/* Free-play CLI per platform. Every recognised command returns realistic output
+   plus a knowledge card: what it does, syntax, when you'd reach for it.
+   cat: verify | trouble | config | setup | save                             */
+const CAT={
+  verify:{n:"Verify / Monitor",c:"#3FD6C6",d:"Confirms current state. Safe to run any time — changes nothing."},
+  trouble:{n:"Troubleshooting",c:"#F4634E",d:"Run when something is broken, to narrow down where."},
+  config:{n:"Configure / Edit",c:"#FFB347",d:"Changes device behaviour. Know your rollback before you type it."},
+  setup:{n:"Initial setup",c:"#5B9DFF",d:"Provisioning a new device or service from scratch."},
+  save:{n:"Save / Recover",c:"#7BD88F",d:"Persists or restores configuration."},
+};
+
+const SB={
+cisco:{name:"Cisco IOS",hex:"#3FD6C6",dev:"R1 · ISR 4331",prompts:{oper:"R1#",conf:"R1(config)#"},cmds:[
+ {k:"show ip interface brief",cat:"verify",m:[/^sh(ow)? ip int(erface)? br(ief)?$/],mode:"oper",
+  out:"Interface          IP-Address      OK? Method Status                Protocol\nGigabitEthernet0/0 10.1.1.1        YES manual up                    up\nGigabitEthernet0/1 203.0.113.2     YES manual up                    up\nGigabitEthernet0/2 unassigned      YES unset  administratively down down",
+  does:"One line per interface: address, and the two status columns that matter — physical (L1) then line protocol (L2).",
+  syn:"show ip interface brief",
+  use:"The first command on any Cisco box. up/up is healthy; up/down means L2 (encapsulation, keepalives); down/down is physical; administratively down means someone typed shutdown.",
+  rel:["show interfaces","show ip route"]},
+ {k:"show ip route",cat:"verify",m:[/^sh(ow)? ip route$/],mode:"oper",
+  out:"Codes: C - connected, S - static, O - OSPF, B - BGP\n\nS*   0.0.0.0/0 [1/0] via 203.0.113.1\nC    10.1.1.0/24 is directly connected, GigabitEthernet0/0\nO    10.2.0.0/16 [110/20] via 10.1.1.2, 00:14:22, GigabitEthernet0/0",
+  does:"The routing table — every destination this router knows, with the source code, [administrative distance/metric], and next hop.",
+  syn:"show ip route  ·  show ip route 10.2.5.5 (ask about one destination)",
+  use:"When traffic goes somewhere unexpected. Remember: longest prefix match decides first, AD only breaks ties between equal prefixes.",
+  rel:["show ip route 10.2.5.5","show ip protocols"]},
+ {k:"show ip route 10.2.5.5",cat:"trouble",m:[/^sh(ow)? ip route \d+\.\d+\.\d+\.\d+$/],mode:"oper",
+  out:"Routing entry for 10.2.0.0/16\n  Known via \"ospf 1\", distance 110, metric 20\n  Last update from 10.1.1.2 on GigabitEthernet0/0, 00:14:41 ago\n  Routing Descriptor Blocks:\n  * 10.1.1.2, from 2.2.2.2, via GigabitEthernet0/0",
+  does:"Asks the router which single route it would actually use for one destination — it does the longest-prefix-match for you.",
+  syn:"show ip route <ip-address>",
+  use:"Settles every 'which route wins' argument instantly. Far faster than reading the whole table and guessing.",
+  rel:["show ip route","show ip cef 10.2.5.5"]},
+ {k:"show interfaces GigabitEthernet0/0",cat:"trouble",m:[/^sh(ow)? int(erfaces)?( gi(gabitethernet)?0\/0)?$/],mode:"oper",
+  out:"GigabitEthernet0/0 is up, line protocol is up\n  Full Duplex, 1Gbps, media type is RJ45\n  5 minute input rate 4130000 bits/sec\n     284917 packets input, 0 input errors, 0 CRC, 0 frame\n     0 output errors, 0 collisions, 0 interface resets",
+  does:"Full detail for one interface: duplex, speed, throughput, and the error counters.",
+  syn:"show interfaces [interface-id]",
+  use:"When a link is 'up' but performing badly. Climbing CRC errors = physical problem (cable, optics, EMI). Late collisions = duplex mismatch. No config command fixes damaged bits.",
+  rel:["show ip interface brief","show controllers"]},
+ {k:"ping 8.8.8.8",cat:"trouble",m:[/^ping \d+\.\d+\.\d+\.\d+$/],mode:"oper",
+  out:"Type escape sequence to abort.\nSending 5, 100-byte ICMP Echos to 8.8.8.8, timeout is 2 seconds:\n!!!!!\nSuccess rate is 100 percent (5/5), round-trip min/avg/max = 12/14/18 ms",
+  does:"Sends five ICMP echoes and reports the success rate and round-trip times.",
+  syn:"ping <ip>  ·  ping <ip> source <interface> (test from a specific address)",
+  use:"Proves L1–L3 reachability. Read the characters: ! is a reply, . is a timeout, U is unreachable. The 'source' option matters when routing back depends on which address you came from.",
+  rel:["traceroute 8.8.8.8","show ip route"]},
+ {k:"traceroute 8.8.8.8",cat:"trouble",m:[/^trace(route)? \d+\.\d+\.\d+\.\d+$/],mode:"oper",
+  out:"  1 203.0.113.1  1 msec  1 msec  2 msec\n  2 10.90.0.1  2 msec  3 msec  2 msec\n  3 * * *\n  4 8.8.8.8  14 msec  13 msec  14 msec",
+  does:"Maps every router between here and the destination by sending probes with increasing TTL values.",
+  syn:"traceroute <ip>",
+  use:"Finds WHERE latency or loss begins rather than just that it exists. A row of asterisks usually means a hop that won't reply to probes — not necessarily a fault.",
+  rel:["ping 8.8.8.8"]},
+ {k:"show cdp neighbors",cat:"verify",m:[/^sh(ow)? cdp nei(ghbors)?$/],mode:"oper",
+  out:"Device ID    Local Intrfce   Holdtme  Capability  Platform   Port ID\nSW1          Gig 0/0         142        S I       WS-C2960   Gig 1/0/24\nR2           Gig 0/1         168        R         ISR4331    Gig 0/1",
+  does:"Lists directly connected Cisco devices, which local port they're on, and which of their ports connects back.",
+  syn:"show cdp neighbors  ·  show cdp neighbors detail (adds IP addresses)",
+  use:"Building a topology map without leaving your chair. In mixed-vendor networks use 'show lldp neighbors' instead — CDP is Cisco-only.",
+  rel:["show lldp neighbors","show interfaces"]},
+ {k:"show ip ospf neighbor",cat:"verify",m:[/^sh(ow)? ip ospf nei(ghbor)?$/],mode:"oper",
+  out:"Neighbor ID  Pri  State     Dead Time  Address    Interface\n2.2.2.2        1  FULL/DR   00:00:36   10.1.1.2   GigabitEthernet0/0",
+  does:"Shows every OSPF adjacency and the state it reached.",
+  syn:"show ip ospf neighbor [interface]",
+  use:"FULL is healthy. Stuck in EXSTART/EXCHANGE means MTU mismatch. INIT means hellos are only going one way. Missing entirely means timers, area, subnet, or authentication disagree.",
+  rel:["show ip ospf interface","show ip protocols"]},
+ {k:"configure terminal",cat:"config",m:[/^conf(igure)? ?t(erminal)?$/],mode:"oper",to:"conf",
+  out:"Enter configuration commands, one per line.  End with CNTL/Z.",
+  does:"Enters global configuration mode. From here every command changes the running config immediately.",
+  syn:"configure terminal",
+  use:"There is no candidate config in IOS — the moment you press Enter, it's live. Take a 'show run' backup first on anything production.",
+  rel:["copy running-config startup-config","exit"]},
+ {k:"copy running-config startup-config",cat:"save",m:[/^copy run(ning-config)? start(up-config)?$/,/^wr(ite)?( mem(ory)?)?$/],mode:"oper",
+  out:"Destination filename [startup-config]?\nBuilding configuration...\n[OK]",
+  does:"Copies the live config in RAM to NVRAM so it survives a reboot.",
+  syn:"copy running-config startup-config  ·  wr (shortcut)",
+  use:"The most expensive command to forget. Everything you configured is lost on the next power blip until you run it.",
+  rel:["show startup-config","configure terminal"]},
+]},
+
+arista:{name:"Arista EOS",hex:"#FF8A65",dev:"sw1 · DCS-7050SX3",prompts:{oper:"sw1#",conf:"sw1(config)#"},cmds:[
+ {k:"show version",cat:"verify",m:[/^sh(ow)? version$/],mode:"oper",
+  out:"Arista DCS-7050SX3-48YC8\nSoftware image version: 4.30.4M\nUptime: 61 days, 4 hours",
+  does:"Model, EOS version, and uptime.",syn:"show version  ·  show version | json",
+  use:"Check before any upgrade or bug lookup — EOS features vary by platform family.",rel:["show inventory"]},
+ {k:"show interfaces status",cat:"verify",m:[/^sh(ow)? int(erfaces)? status$/],mode:"oper",
+  out:"Port  Name       Status       Vlan  Duplex Speed Type\nEt1   server-01  connected    10    full   25G   25GBASE-CR\nEt2              notconnect   1     auto   auto  Not Present\nEt3   old-ap       errdisabled  1     auto   auto  10GBASE-SR",
+  does:"Every port with link state, VLAN, duplex, speed and transceiver type.",
+  syn:"show interfaces status  ·  show interfaces status | json",
+  use:"Fastest whole-switch read. 'notconnect' means nothing plugged in or dark fiber; 'errdisabled' means a protection kicked in — check 'show interfaces status errdisabled' for the reason.",
+  rel:["show interfaces counters errors","show lldp neighbors"]},
+ {k:"show lldp neighbors",cat:"verify",m:[/^sh(ow)? lldp nei(ghbors)?$/],mode:"oper",
+  out:"Port   Neighbor Device ID  Neighbor Port ID  TTL\nEt49   spine1              Ethernet1/1       120\nEt50   spine2              Ethernet1/1       120",
+  does:"Neighbouring devices discovered with the open standard 802.1AB.",
+  syn:"show lldp neighbors [detail]",
+  use:"The vendor-neutral topology map. In a mixed Arista/Cisco/Juniper fabric this is the only discovery protocol they all speak.",
+  rel:["show interfaces status"]},
+ {k:"show ip bgp summary",cat:"verify",m:[/^sh(ow)? ip bgp sum(mary)?$/],mode:"oper",
+  out:"Neighbor      V  AS      MsgRcvd MsgSent  Up/Down   State  PfxRcd\n10.0.0.1      4  65001   12043   11982    5d02h     Estab  842001",
+  does:"One line per BGP peer with state and prefixes received.",syn:"show ip bgp summary",
+  use:"A number in the last column means Established. A word (Idle, Active, Connect) means it's down — and the word tells you where in the state machine.",
+  rel:["show ip bgp neighbors"]},
+ {k:"configure session fix-uplink",cat:"config",m:[/^configure session \S+$/],mode:"oper",to:"conf",
+  out:"sw1(config-s-fix-uplink)#",
+  does:"Opens a NAMED staging area. Nothing you type takes effect until you commit.",
+  syn:"configure session <name>",
+  use:"The safe way to change EOS. Plain 'configure terminal' applies instantly; a session lets you diff first and apply atomically.",
+  rel:["show session-config diffs","commit"]},
+ {k:"show session-config diffs",cat:"config",m:[/^sh(ow)? session-config diffs$/],mode:"conf",
+  out:"--- system:/running-config\n+++ session:/fix-uplink\n@@\n interface Ethernet5\n+   description uplink-to-core\n+   switchport mode trunk",
+  does:"Diffs your staged session against what's actually running.",syn:"show session-config diffs",
+  use:"Read this before every commit. It catches the typo you can't see and gives you text to paste into the change ticket.",
+  rel:["commit","abort"]},
+ {k:"commit",cat:"config",m:[/^commit$/],mode:"conf",to:"oper",
+  out:"sw1#",
+  does:"Applies the whole staged session at once.",syn:"commit  ·  commit timer 5",
+  use:"'commit timer 5' auto-reverts in five minutes unless you confirm — use it whenever the change could cut your own management path.",
+  rel:["configure session fix-uplink","rollback"]},
+ {k:"bash",cat:"trouble",m:[/^bash$/],mode:"oper",
+  out:"[admin@sw1 ~]$  (type 'exit' to return to the CLI)",
+  does:"Drops to the underlying Linux shell.",syn:"bash  ·  bash <command>",
+  use:"EOS runs on unmodified Linux, so tcpdump, python and normal file tools are right there. This is Arista's core architectural difference.",
+  rel:["show version"]},
+]},
+
+juniper:{name:"Juniper Junos",hex:"#9CCC65",dev:"mx · MX204",prompts:{oper:"user@mx>",conf:"user@mx#"},cmds:[
+ {k:"show interfaces terse",cat:"verify",m:[/^sh(ow)? int(erfaces)? terse$/],mode:"oper",
+  out:"Interface     Admin Link Proto  Local\nge-0/0/0      up    up\nge-0/0/0.0    up    up   inet   10.1.1.1/24\nge-0/0/1      up    down",
+  does:"Compact interface list: admin state, link state, and configured addresses.",
+  syn:"show interfaces terse [interface]",
+  use:"The Junos version of 'show ip interface brief'. Two status columns read exactly like Cisco's up/up. Note the .0 line — that's the logical unit.",
+  rel:["show interfaces ge-0/0/0 extensive"]},
+ {k:"show route",cat:"verify",m:[/^sh(ow)? route$/],mode:"oper",
+  out:"inet.0: 14 destinations, 16 routes\n0.0.0.0/0    *[Static/5] 2d 04:11:02\n                > to 203.0.113.1 via ge-0/0/1.0\n10.2.0.0/16  *[OSPF/10] 00:14:22, metric 20\n                > to 10.1.1.2 via ge-0/0/0.0",
+  does:"The routing table. The asterisk marks the active route; brackets show protocol and preference.",
+  syn:"show route  ·  show route 10.2.5.5  ·  show route protocol bgp",
+  use:"'Preference' is Junos's word for administrative distance — and the defaults differ from Cisco's, which matters at redistribution points.",
+  rel:["show route 10.2.5.5","show route summary"]},
+ {k:"show ospf neighbor",cat:"verify",m:[/^sh(ow)? ospf nei(ghbor)?$/],mode:"oper",
+  out:"Address     Interface       State  ID        Pri  Dead\n10.1.1.2    ge-0/0/0.0      Full   2.2.2.2   128  38",
+  does:"OSPF adjacencies and their states.",syn:"show ospf neighbor [detail]",
+  use:"Same protocol states as every other vendor — Full means synchronised databases. Only the CLI grammar is Juniper's.",
+  rel:["show ospf interface","show ospf database"]},
+ {k:"show bgp summary",cat:"verify",m:[/^sh(ow)? bgp sum(mary)?$/],mode:"oper",
+  out:"Peer          AS      InPkt OutPkt  Up/Dwn  State|#Active/Received/Accepted\n203.0.113.2   65001   12043 11982   5d2h    842001/842001/842001",
+  does:"BGP peer states and prefix counts.",syn:"show bgp summary",
+  use:"Three numbers: active/received/accepted. A gap between received and accepted means your import policy is filtering — often intentionally, sometimes not.",
+  rel:["show bgp neighbor"]},
+ {k:"configure",cat:"config",m:[/^configure$/,/^edit$/],mode:"oper",to:"conf",
+  out:"Entering configuration mode\n[edit]\nuser@mx#",
+  does:"Enters configuration mode and starts a CANDIDATE config.",syn:"configure  ·  configure exclusive (lock others out)",
+  use:"Watch the prompt: > is operational, # is configuration. That's the OPPOSITE of Cisco, where # means privileged EXEC. Nothing you type here is live until commit.",
+  rel:["show | compare","commit confirmed 5"]},
+ {k:"show | compare",cat:"config",m:[/^show \| compare$/],mode:"conf",
+  out:"[edit interfaces ge-0/0/0]\n+   unit 0 {\n+       family inet {\n+           address 10.1.1.1/24;\n+       }\n+   }",
+  does:"Diffs your candidate config against the active one.",syn:"show | compare  ·  show | compare rollback 1",
+  use:"Junos's best habit. + is what you're adding, - what you're removing. Run it before every single commit.",
+  rel:["commit confirmed 5","rollback 0"]},
+ {k:"commit confirmed 5",cat:"config",m:[/^commit( confirmed( \d+)?)?$/],mode:"conf",
+  out:"commit confirmed will be automatically rolled back in 5 minutes unless confirmed\ncommit complete",
+  does:"Activates the candidate config, but reverts automatically unless you confirm.",
+  syn:"commit  ·  commit confirmed <minutes>  ·  commit and-quit",
+  use:"The command that saves careers. If the change severs your own access, the router undoes it by itself. Type 'commit' again inside the window to make it stick.",
+  rel:["rollback 1","show | compare"]},
+ {k:"rollback 1",cat:"save",m:[/^rollback( \d+)?$/],mode:"conf",
+  out:"load complete   (now run 'commit' to activate it)",
+  does:"Loads a previous configuration into the candidate.",syn:"rollback 0 (discard edits) · rollback 1 (config before last commit)",
+  use:"Junos keeps up to 50 previous commits. Real undo, built into the platform — then commit to activate the restored version.",
+  rel:["show | compare rollback 1","commit"]},
+]},
+
+nokia:{name:"Nokia SR OS",hex:"#64B5F6",dev:"SR1 · 7750 SR-7",prompts:{oper:"A:SR1#",conf:"A:SR1>config#"},cmds:[
+ {k:"show router interface",cat:"verify",m:[/^show router interface$/],mode:"oper",
+  out:"Interface   Adm  Opr(v4/v6)  Mode      Port/SapId    IP-Address\nto-core     Up   Up/Down     Network   1/1/1         10.0.0.1/30\nsystem      Up   Up/Down     Network   system        1.1.1.1/32",
+  does:"Logical Layer 3 interfaces — addresses, state, and which port each is bound to.",
+  syn:"show router interface [name] [detail]",
+  use:"SR OS separates PHYSICAL ports from LOGICAL router interfaces. This is the logical half; a port can be perfectly up with no interface bound to it.",
+  rel:["show port","show router route-table"]},
+ {k:"show port",cat:"verify",m:[/^show port$/],mode:"oper",
+  out:"Port    Admin Link Port    Cfg  Oper  MTU   Speed\nId      State      State   MTU  MTU\n1/1/1   Up    Yes  Up      9212 9212  100G\n1/1/2   Up    No   Down    9212 9212  100G",
+  does:"The physical layer: link state, MTU, speed, per port.",syn:"show port [port-id] [detail]",
+  use:"Always check both halves. Port up + no router interface = no L3. Port down = go look at optics and fibre before touching config.",
+  rel:["show router interface","show port 1/1/1 detail"]},
+ {k:"show router route-table",cat:"verify",m:[/^show router route-table$/],mode:"oper",
+  out:"Dest Prefix      Type    Proto  Next Hop      Metric  Pref\n10.0.0.0/30     Local   Local  to-core       0       0\n10.1.0.0/16     Remote  BGP    10.0.0.2      0       170",
+  does:"The IPv4 routing table with protocol, next hop and preference.",
+  syn:"show router route-table [ip-prefix]",
+  use:"'Pref' is Nokia's administrative distance — and BGP's default differs from Cisco's. Check it before you assume redistribution behaves the same way.",
+  rel:["show router bgp routes","show router interface"]},
+ {k:"show router bgp summary",cat:"verify",m:[/^show router bgp summary$/],mode:"oper",
+  out:"Neighbor      AS     State|Rcv/Act/Sent  Up/Down\n10.0.0.2      65001  Established         5d02h\n                     842001/842001/12",
+  does:"BGP peer states and prefix counts.",syn:"show router bgp summary",
+  use:"Nokia gear sits at most service-provider edges, so this is your first command on any peering complaint.",
+  rel:["show router bgp neighbor"]},
+ {k:"show router ospf neighbor",cat:"verify",m:[/^show router ospf neighbor$/],mode:"oper",
+  out:"Interface-Name  Rtr Id     State  Pri  RetxQ  TTL\nto-core         2.2.2.2    Full   1    0      32",
+  does:"OSPF adjacency states.",syn:"show router ospf neighbor [detail]",
+  use:"Everything routing-related nests under 'router' in SR OS — that single fact makes most commands guessable.",
+  rel:["show router ospf interface"]},
+ {k:"show system information",cat:"verify",m:[/^show system information$/],mode:"oper",
+  out:"System Name       : SR1\nSystem Type       : 7750 SR-7\nSystem Version    : TiMOS-B-22.10.R4\nSystem Up Time    : 128 days, 04:22:11\nLast Saved Config : 2026/08/01 14:02:11",
+  does:"Chassis type, TiMOS version, uptime, and when the config was last saved.",
+  syn:"show system information",
+  use:"First paste into any Nokia TAC case. TiMOS is the OS name you'll see in every release note and bug ID. Note the last-saved line — free reminder.",
+  rel:["show version","admin save"]},
+ {k:"show system lldp neighbor",cat:"verify",m:[/^show system lldp neighbor$/],mode:"oper",
+  out:"Port     Remote Chassis Id   Remote Port    System Name\n1/1/1    00:1c:73:aa:bb:cc   Ethernet1/5    spine-01",
+  does:"Neighbouring devices seen via LLDP.",syn:"show system lldp neighbor",
+  use:"Same data Arista and Junos expose — different branch of the command tree. Concepts transfer; syntax you look up.",
+  rel:["show port"]},
+ {k:"admin save",cat:"save",m:[/^admin save$/],mode:"oper",
+  out:"Writing configuration to cf3:\\config.cfg\nSaving configuration ... Completed.",
+  does:"Writes the running config to flash.",syn:"admin save  ·  admin save <file-url>",
+  use:"Operational tasks live under 'admin'. Watch the prompt: the leading asterisk (*A:SR1#) means unsaved changes exist — a reminder Cisco never gives you.",
+  rel:["show system information","admin reboot"]},
+]},
+
+panos:{name:"Palo Alto PAN-OS",hex:"#7BD88F",dev:"PA · PA-3220",prompts:{oper:"admin@PA>",conf:"admin@PA#"},cmds:[
+ {k:"show system info",cat:"verify",m:[/^show system info$/],mode:"oper",
+  out:"hostname: PA-EDGE-01\nmodel: PA-3220\nserial: 0123456789\nsw-version: 11.1.2\nuptime: 84 days, 6:11:02",
+  does:"Model, serial, PAN-OS version, uptime.",syn:"show system info",
+  use:"First paste into any support case, and the fastest way to confirm version before checking a known bug.",
+  rel:["show system resources"]},
+ {k:"show interface all",cat:"verify",m:[/^show interface all$/],mode:"oper",
+  out:"total configured hardware interfaces: 4\nname  id  vsys  zone     state\nethernet1/1  16  1  untrust  up\nethernet1/2  17  1  trust    up\nethernet1/3  18  1  dmz      down",
+  does:"Every interface with the ZONE it belongs to and its state.",syn:"show interface all  ·  show interface ethernet1/1",
+  use:"The zone column is the important one — PAN-OS policy is written zone-to-zone, so an interface in the wrong zone silently changes which rules apply.",
+  rel:["show session all"]},
+ {k:"test security-policy-match source 10.1.1.5 destination 8.8.8.8",cat:"trouble",
+  m:[/^test security-policy-match .+$/],mode:"oper",
+  out:'"outbound-dns" {\n  from trust;\n  source any;\n  to untrust;\n  destination any;\n  application dns;\n  action allow;\n}',
+  does:"Runs a hypothetical flow through the rulebase and names the rule that would catch it.",
+  syn:"test security-policy-match source <ip> destination <ip> [application <app>] [protocol 6] [destination-port <n>]",
+  use:"Ends every 'which rule is blocking me' debate in one line. For NAT'd inbound traffic, use the PRE-NAT destination IP — the security lookup happens before translation.",
+  rel:["show session all","show running security-policy"]},
+ {k:"show session all",cat:"trouble",m:[/^show session all$/],mode:"oper",
+  out:"ID    Application  State  Type  Src[Sport]/Zone/Proto  Dst[Dport]/Zone\n20841 dns          ACTIVE FLOW  10.1.1.5[54021]/trust/17  8.8.8.8[53]/untrust\n20844 web-browsing ACTIVE FLOW  10.1.1.9[51002]/trust/6   93.184.216.34[443]/untrust",
+  does:"The live session table with the App-ID assigned to each flow.",
+  syn:"show session all  ·  show session all filter destination 8.8.8.8",
+  use:"Proof of what the firewall is actually passing right now. Add filters during an incident — the unfiltered table on a busy box is unreadable.",
+  rel:["show session id 20841","test security-policy-match source 10.1.1.5 destination 8.8.8.8"]},
+ {k:"ping host 8.8.8.8",cat:"trouble",m:[/^ping host \d+\.\d+\.\d+\.\d+$/],mode:"oper",
+  out:"64 bytes from 8.8.8.8: icmp_seq=1 ttl=117 time=8.24 ms\n64 bytes from 8.8.8.8: icmp_seq=2 ttl=117 time=8.11 ms",
+  does:"Tests reachability from the firewall itself.",syn:"ping host <ip>  ·  ping source <ip> host <ip>",
+  use:"PAN-OS needs the 'host' keyword before the address. The 'source' option matters when service routes send firewall traffic out a data interface instead of MGT.",
+  rel:["show routing route"]},
+ {k:"configure",cat:"config",m:[/^configure$/],mode:"oper",to:"conf",
+  out:"Entering configuration mode\n[edit]\nadmin@PA#",
+  does:"Enters configuration mode and starts editing the candidate config.",syn:"configure",
+  use:"Everything you change here stages in the candidate. Traffic keeps obeying the running config until you commit.",
+  rel:["commit","exit"]},
+ {k:"commit",cat:"config",m:[/^commit$/],mode:"conf",to:"oper",
+  out:"Commit job enqueued with jobid 42\n42%.....98%.....100%\nConfiguration committed successfully",
+  does:"Validates and activates the candidate configuration.",syn:"commit  ·  commit force  ·  commit partial",
+  use:"No behaviour change after your edits? You didn't commit. Read the warnings — shadowed rules and broken references are reported here before they bite.",
+  rel:["show jobs all","configure"]},
+ {k:"show jobs all",cat:"verify",m:[/^show jobs all$/],mode:"oper",
+  out:"ID  Type    Status  Result  Completed\n42  Commit  FIN     OK      14:22:08\n41  Commit  FIN     FAIL    13:02:44",
+  does:"History of commits, content updates, and other background jobs.",syn:"show jobs all  ·  show jobs id 42",
+  use:"When someone says 'the change didn't take', this tells you whether the commit even succeeded and when.",
+  rel:["commit"]},
+]},
+
+linux:{name:"Linux host",hex:"#B08CFF",dev:"srv01 · Ubuntu 24.04",prompts:{oper:"admin@srv01:~$",conf:"root@srv01:~#"},cmds:[
+ {k:"ip a",cat:"verify",m:[/^ip a(ddr)?( show)?$/],mode:"oper",
+  out:"2: ens160: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 state UP\n    link/ether 00:50:56:9a:1b:2c\n    inet 10.1.1.50/24 brd 10.1.1.255 scope global ens160",
+  does:"All interfaces with their addresses, MAC, MTU and state.",syn:"ip a  ·  ip -br a (one line each)",
+  use:"The modern replacement for ifconfig. 'state UP' plus LOWER_UP means the cable is live; UP without LOWER_UP means enabled but unplugged.",
+  rel:["ip r","ip -br a"]},
+ {k:"ip r",cat:"verify",m:[/^ip r(oute)?( show)?$/],mode:"oper",
+  out:"default via 10.1.1.1 dev ens160 proto static\n10.1.1.0/24 dev ens160 proto kernel scope link src 10.1.1.50",
+  does:"The host's routing table.",syn:"ip r  ·  ip r get 8.8.8.8 (which route would be used)",
+  use:"'ip r get <ip>' is the underrated one — it tells you exactly which route and source address the kernel would pick for a destination.",
+  rel:["ip a","ip r get 8.8.8.8"]},
+ {k:"ss -tlnp",cat:"trouble",m:[/^(sudo )?ss -tlnp$/],mode:"oper",
+  out:'State  Local Address:Port  Process\nLISTEN 0.0.0.0:22          users:(("sshd",pid=812))\nLISTEN 0.0.0.0:8095        users:(("node",pid=2044))\nLISTEN 127.0.0.1:3306      users:(("mysqld",pid=1190))',
+  does:"Every listening TCP socket and the process behind it.",
+  syn:"ss -tlnp   (t=tcp, l=listening, n=numeric, p=process)",
+  use:"How you find backdoors, forgotten services and port conflicts. Note the difference between 0.0.0.0 (the whole world) and 127.0.0.1 (local only) — that distinction is a security finding.",
+  rel:["ss -tunap","lsof -i :8095"]},
+ {k:"dig example.com",cat:"trouble",m:[/^dig \S+$/,/^nslookup \S+$/],mode:"oper",
+  out:";; ANSWER SECTION:\nexample.com.  3600  IN  A  93.184.216.34\n\n;; Query time: 12 msec\n;; SERVER: 10.1.1.1#53(10.1.1.1)",
+  does:"Queries DNS directly and shows which server answered.",
+  syn:"dig <name>  ·  dig @8.8.8.8 <name>  ·  dig <name> +short",
+  use:"Ping by IP works but names fail? This is your command. Query your resolver, then query 8.8.8.8 — if one answers and the other doesn't, you've found whose resolver is broken.",
+  rel:["cat /etc/resolv.conf"]},
+ {k:"tcpdump -i any -c 5 port 443",cat:"trouble",m:[/^(sudo )?tcpdump .+$/],mode:"oper",
+  out:"14:22:08.112 IP 10.1.1.50.51002 > 93.184.216.34.443: Flags [S], seq 1893\n14:22:08.124 IP 93.184.216.34.443 > 10.1.1.50.51002: Flags [S.], seq 4021\n14:22:08.124 IP 10.1.1.50.51002 > 93.184.216.34.443: Flags [.], ack 1",
+  does:"Captures packets matching a filter and prints them live.",
+  syn:"tcpdump -i <iface> -c <count> <filter>  ·  add -w file.pcap to save for Wireshark",
+  use:"The ground truth when logs disagree. Those three lines are a TCP handshake: SYN, SYN-ACK, ACK. Seeing SYN with no reply means it never reached the server — a firewall or routing problem, not an app problem.",
+  rel:["ss -tlnp"]},
+ {k:"systemctl status sshd",cat:"trouble",m:[/^systemctl status \S+$/],mode:"oper",
+  out:"● ssh.service - OpenBSD Secure Shell server\n   Active: active (running) since Mon 2026-08-04 09:11:02\n   Main PID: 812 (sshd)",
+  does:"Whether a service is running, since when, and its recent log lines.",
+  syn:"systemctl status <unit>  ·  systemctl restart <unit>",
+  use:"First check on 'the service is down'. 'active (running)' vs 'failed' vs 'inactive (dead)' tells you whether to look at config or at whatever killed it.",
+  rel:["journalctl -u ssh -n 50"]},
+ {k:"journalctl -u ssh -n 50",cat:"trouble",m:[/^journalctl .+$/],mode:"oper",
+  out:"Aug 09 14:02:11 srv01 sshd[9921]: Failed password for root from 203.0.113.55 port 51022\nAug 09 14:02:14 srv01 sshd[9923]: Failed password for admin from 203.0.113.55 port 51044",
+  does:"Reads the systemd journal for one service.",
+  syn:"journalctl -u <unit> -n <lines>  ·  add -f to follow live",
+  use:"Where the real error message lives when a service won't start. Repeated 'Failed password' from one IP is a brute-force attempt — time for fail2ban and a firewall rule.",
+  rel:["systemctl status sshd","tail -n 50 /var/log/auth.log"]},
+ {k:"sudo -i",cat:"config",m:[/^sudo -i$/,/^su$/],mode:"oper",to:"conf",
+  out:"root@srv01:~#",
+  does:"Becomes root for an interactive session.",syn:"sudo -i  ·  sudo <command> (better: one command at a time)",
+  use:"Prefer 'sudo <command>' over a root shell — every action gets logged with your identity, which is both an audit trail and a guardrail. Least privilege applies to you too.",
+  rel:["ss -tlnp","systemctl status sshd"]},
+]},
+};
+
 /* ============================ COMMAND REFERENCE (learning) ============================ */
 /* What the commands MEAN — per platform, plus a cross-vendor translation table */
 const LEARN=[
@@ -1284,6 +1592,7 @@ function renderHome(){
       ${navItem("✕","rgba(244,99,78,.15)","Missed log","go({screen:'missed'})")}
       ${navItem("▤","rgba(63,214,198,.15)","My stats","go({screen:'stats'})")}
       ${navItem("⌘","rgba(123,216,143,.15)","Command reference","go({screen:'learn'})")}
+      ${navItem("▶","rgba(63,214,198,.15)","Command sandbox","go({screen:'sandbox'})")}
     </nav>
     <div class="panel">${osiLadder()}</div>
     <div class="panel" style="font-family:var(--mono);font-size:12px;color:var(--dim);display:grid;gap:7px">
@@ -1390,6 +1699,14 @@ function renderHome(){
         <p>Type real commands against real scenarios — Cisco, Arista, Junos, Nokia, PAN-OS, Windows, Linux · <span style="color:var(--text)">${cmdSolved}/${CMDS.length} solved</span></p></div>
         <button class="btn ghost" style="border-color:var(--green);color:var(--green);font-size:10px;padding:8px 12px;margin-left:auto" onclick="go({screen:'learn'})">⌘ Reference</button></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${Object.entries(GRP).map(([k,tt])=>`<button class="btn ghost" style="border-color:${tt.hex};color:${tt.hex};font-size:10px;padding:8px 12px" onclick="go({screen:'cmdlab',track:'${k}'})">${tt.short}</button>`).join("")}</div>
+    </div>
+
+    <div class="panel feat span2">
+      <div class="fh">${chip("rgba(63,214,198,.16)","▶")}
+        <div><h3 style="color:var(--cyan)">Command Sandbox</h3>
+        <p>Free-play CLI on six simulated devices — every command explains itself as you go</p></div>
+        <button class="btn ghost" style="border-color:var(--green);color:var(--green);font-size:10px;padding:8px 12px;margin-left:auto" onclick="go({screen:'learn'})">⌘ Reference</button></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${Object.entries(SB).map(([k,x])=>`<button class="btn ghost" style="border-color:${x.hex};color:${x.hex};font-size:10px;padding:8px 12px" onclick="sbVendor('${k}');go({screen:'sandbox'})">${esc(x.name)}</button>`).join("")}</div>
     </div>
 
     <div class="panel feat span2">
@@ -1649,11 +1966,12 @@ function ansOf(o){
 
 /* ---------------- TERMINAL BEHAVIOUR: history + tab completion ---------------- */
 /* Works the way a real shell does: ↑/↓ walks what you typed, Tab completes. */
-const term={cmd:{hist:[],idx:-1},lab:{hist:[],idx:-1}};
+const term={cmd:{hist:[],idx:-1},lab:{hist:[],idx:-1},sb:{hist:[],idx:-1}};
 function termVocab(mode){
   const v=new Set();
   if(mode==="cmd"&&cl.deck){cl.deck.forEach(c=>v.add(ansOf(c)));}
   if(mode==="lab"&&lb.lab){lb.lab.steps.forEach(s=>v.add(ansOf(s)));}
+  if(mode==="sb"&&SB[sb.v]){SB[sb.v].cmds.forEach(c=>v.add(c.k));["?","help ","clear","exit"].forEach(x=>v.add(x));}
   term[mode].hist.forEach(h=>v.add(h));
   return [...v];
 }
@@ -1664,10 +1982,10 @@ function commonPrefix(list){
   return p;
 }
 window.termKey=function(e,mode){
-  const inp=document.getElementById(mode==="cmd"?"cmd-in":"lab-in");
+  const inp=document.getElementById(mode==="cmd"?"cmd-in":mode==="sb"?"sb-in":"lab-in");
   if(!inp)return;
   const st=term[mode];
-  if(e.key==="Enter"){ st.hist.push(inp.value.trim()); st.idx=-1; (mode==="cmd"?window.cmdRun:window.labRun)(); return; }
+  if(e.key==="Enter"){ st.idx=-1; (mode==="cmd"?window.cmdRun:mode==="sb"?window.sbRun:window.labRun)(); return; }
   if(e.key==="ArrowUp"){
     e.preventDefault&&e.preventDefault();
     if(!st.hist.length)return;
@@ -1757,6 +2075,7 @@ window.cmdRun=function(){
   const inp=document.getElementById("cmd-in");
   const raw=(inp&&inp.value||"").trim().replace(/\s+/g," ");
   if(!raw)return;
+  term.cmd.hist.push(raw);term.cmd.idx=-1;
   cl.lastIn=raw;
   const c=cl.deck[cl.i];
   if(c.ac.some(rx=>rx.test(raw.toLowerCase()))){
@@ -2255,6 +2574,7 @@ window.labRun=function(){
   const inp=document.getElementById("lab-in");
   const raw=(inp&&inp.value||"").trim().replace(/\s+/g," ");
   if(!raw)return;
+  term.lab.hist.push(raw);term.lab.idx=-1;
   const st=lb.lab.steps[lb.step];
   if(st.ac.some(rx=>rx.test(raw.toLowerCase()))){
     lb.transcript.push({ps:st.ps,cmd:raw,out:st.out});
@@ -2928,6 +3248,142 @@ window.learnPractice=function(vid){
   go({screen:"cmdlab",track:map[vid]||"ccna"});
 };
 
+/* ---------------- COMMAND SANDBOX ---------------- */
+let sb={v:"cisco",mode:"oper",trans:[],last:null,sugg:null,filter:"all"};
+window.sbVendor=function(v){sb={v,mode:"oper",trans:[],last:null,sugg:null,filter:"all"};term.sb={hist:[],idx:-1};render();};
+window.sbFilter=function(f){sb.filter=f;render();};
+window.sbClear=function(){sb.trans=[];sb.last=null;sb.sugg=null;render();};
+window.sbTry=function(c){const inp=document.getElementById("sb-in");if(inp){inp.value=c;window.sbRun();}else{term.sb.hist.push(c);sbExec(c);render();}};
+function sbDev(){return SB[sb.v];}
+function sbExec(raw){
+  const cmd=raw.trim().replace(/\s+/g," ");
+  if(!cmd)return;
+  const d=sbDev();
+  sb.sugg=null;
+  if(cmd==="?"||cmd==="help"){
+    sb.trans.push({c:cmd,o:"Available commands are listed on the right — tap one to run it.\nTry: help <command>  ·  clear  ·  exit"});
+    return;
+  }
+  if(cmd==="clear"){sb.trans=[];sb.last=null;return;}
+  if(cmd==="exit"||cmd==="end"||cmd==="quit"){
+    if(sb.mode==="conf"){sb.mode="oper";sb.trans.push({c:cmd,o:"(back to operational mode)"});}
+    else sb.trans.push({c:cmd,o:"(already at the top level)"});
+    return;
+  }
+  if(cmd.startsWith("help ")){
+    const q=cmd.slice(5).trim().toLowerCase();
+    const hit=d.cmds.find(x=>x.k.toLowerCase().startsWith(q)||x.m.some(r=>r.test(q)));
+    if(hit){sb.last=hit;sb.trans.push({c:cmd,o:"→ knowledge panel updated for: "+hit.k});}
+    else sb.trans.push({c:cmd,o:"No help entry for that. Type ? to list what this device knows."});
+    return;
+  }
+  const hit=d.cmds.find(x=>x.m.some(r=>r.test(cmd.toLowerCase())));
+  if(hit){
+    if(hit.mode==="conf"&&sb.mode!=="conf"){
+      sb.trans.push({c:cmd,o:"% This command only exists in configuration mode. Enter it first."});
+      sb.last=d.cmds.find(x=>x.to==="conf")||null;
+      return;
+    }
+    sb.trans.push({c:cmd,o:hit.out});
+    sb.last=hit;
+    if(hit.to)sb.mode=hit.to;
+    touchTime();bumpA();save();
+    return;
+  }
+  /* unknown — be useful about it */
+  const first=cmd.split(" ")[0].toLowerCase();
+  const near=d.cmds.filter(x=>x.k.toLowerCase().startsWith(first)||x.k.toLowerCase().includes(first)).slice(0,4);
+  sb.trans.push({c:cmd,o:"% Unrecognised command on this platform."});
+  sb.sugg=near.length?near:null;
+}
+window.sbRun=function(){
+  const inp=document.getElementById("sb-in");
+  const raw=(inp&&inp.value||"");
+  if(!raw.trim())return;
+  term.sb.hist.push(raw.trim());term.sb.idx=-1;
+  sbExec(raw);
+  render();
+};
+function renderSandbox(){
+  const d=sbDev(), prompt=sb.mode==="conf"?d.prompts.conf:d.prompts.oper;
+  const pills=Object.entries(SB).map(([k,x])=>`<button class="btn ghost" style="border-color:${k===sb.v?x.hex:'var(--line)'};color:${k===sb.v?x.hex:'var(--dim)'};font-size:10.5px;padding:8px 13px" onclick="sbVendor('${k}')">${esc(x.name)}</button>`).join("");
+
+  let trans=sb.trans.map(l=>`<div style="color:${d.hex}">${esc(prompt)} <span style="color:var(--text)">${esc(l.c)}</span></div><div style="color:var(--dim);white-space:pre-wrap;margin-bottom:7px">${esc(l.o)}</div>`).join("");
+  if(!trans)trans=`<div style="color:var(--dim)">Connected to ${esc(d.dev)}. Type a command, or tap one from the list. '?' for help.</div>`;
+
+  const sugg=sb.sugg?`<div style="margin-top:8px;font-size:12px;color:var(--amber)">Did you mean: ${sb.sugg.map(s=>`<button onclick="sbTry('${esc(s.k)}')" style="background:none;border:none;color:var(--amber);font-family:var(--mono);font-size:12px;cursor:pointer;text-decoration:underline;padding:0 6px 0 0">${esc(s.k)}</button>`).join("")}</div>`:"";
+
+  /* knowledge panel */
+  let know="";
+  if(sb.last){
+    const L=sb.last, C=CAT[L.cat];
+    know=`<div class="panel" style="border-left:3px solid ${C.c}">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-family:var(--mono);font-size:13px;color:${d.hex}">${esc(L.k)}</span>
+        <span style="font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:${C.c};border:1px solid ${C.c};border-radius:99px;padding:3px 9px">${esc(C.n)}</span></div>
+      <div style="font-size:11px;color:var(--dim);margin-top:6px;font-style:italic">${esc(C.d)}</div>
+      <div style="margin-top:13px"><div class="eyebrow" style="margin-bottom:5px">What it does</div>
+        <div style="font-size:13.5px;line-height:1.6">${esc(L.does)}</div></div>
+      <div style="margin-top:12px"><div class="eyebrow" style="margin-bottom:5px">Syntax</div>
+        <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--panel2);border-radius:8px;padding:9px 11px">${esc(L.syn)}</div></div>
+      <div style="margin-top:12px"><div class="eyebrow" style="margin-bottom:5px">When you'd use it</div>
+        <div style="font-size:13.5px;line-height:1.6;color:var(--text)">${esc(L.use)}</div></div>
+      ${L.rel&&L.rel.length?`<div style="margin-top:12px"><div class="eyebrow" style="margin-bottom:6px">Try next</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${L.rel.map(r=>`<button class="btn ghost" style="border-color:var(--line);color:var(--dim);font-size:10px;padding:6px 10px;font-family:var(--mono);text-transform:none;letter-spacing:0" onclick="sbTry('${esc(r)}')">${esc(r)}</button>`).join("")}</div></div>`:''}
+    </div>`;
+  }else{
+    know=`<div class="panel" style="color:var(--dim);font-size:13px;line-height:1.6">
+      Run any command and this panel explains what it does, its exact syntax, and when you'd reach for it in real life.<br><br>
+      Stuck? Type <span style="font-family:var(--mono);color:var(--text)">?</span> to list what this device knows, or
+      <span style="font-family:var(--mono);color:var(--text)">help &lt;command&gt;</span> to read about one without running it.</div>`;
+  }
+
+  /* command browser, filterable by purpose */
+  const cats=["all","verify","trouble","config","save","setup"].filter(c=>c==="all"||d.cmds.some(x=>x.cat===c));
+  const filters=cats.map(c=>`<button class="btn ghost" style="border-color:${sb.filter===c?(c==="all"?d.hex:CAT[c].c):'var(--line)'};color:${sb.filter===c?(c==="all"?d.hex:CAT[c].c):'var(--dim)'};font-size:9.5px;padding:6px 10px" onclick="sbFilter('${c}')">${c==="all"?"All":esc(CAT[c].n)}</button>`).join("");
+  const list=d.cmds.filter(x=>sb.filter==="all"||x.cat===sb.filter).map(x=>`
+    <button onclick="sbTry('${esc(x.k)}')" style="text-align:left;background:var(--panel2);border:1px solid var(--line);border-left:3px solid ${CAT[x.cat].c};border-radius:9px;padding:9px 11px;cursor:pointer;color:var(--text);width:100%">
+      <div style="font-family:var(--mono);font-size:11.5px">${esc(x.k)}</div>
+      <div style="font-size:10.5px;color:var(--dim);margin-top:3px">${esc(x.does.slice(0,64))}${x.does.length>64?"…":""}</div></button>`).join("");
+
+  app.innerHTML=header()+`<div style="max-width:1060px;margin:0 auto">
+    <span class="eyebrow" style="color:${d.hex}">Command Sandbox</span>
+    <h2 class="screen-title" style="margin:4px 0 6px">Explore a live ${esc(d.name)} — nothing you type can break anything</h2>
+    <p style="font-size:13px;color:var(--dim)">Simulated device: ${esc(d.dev)}. Every command answers with realistic output and explains itself.</p>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin:14px 0">${pills}</div>
+    <div style="display:grid;grid-template-columns:1fr 330px;gap:14px" class="sb-grid">
+      <div>
+        <div class="panel" style="padding:0;overflow:hidden">
+          <div style="background:#0A0F1A;padding:15px;font-family:var(--mono);font-size:12.5px;line-height:1.55;max-height:340px;overflow-y:auto">
+            ${trans}
+            <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+              <span style="color:${d.hex};white-space:nowrap">${esc(prompt)}</span>
+              <input id="sb-in" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
+                style="flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:13px"
+                onkeydown="termKey(event,'sb')" placeholder="type a command…   (↑↓ history · Tab completes · ? for help)">
+            </div>
+            <div id="sb-hint" style="color:var(--dim);font-size:11px;margin-top:6px;white-space:pre-wrap"></div>
+            ${sugg}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn" style="background:${d.hex};border-color:${d.hex};font-size:11px;padding:9px 16px" onclick="sbRun()">Run ⏎</button>
+          <button class="btn ghost" style="border-color:var(--dim);color:var(--dim);font-size:11px;padding:9px 14px" onclick="sbClear()">Clear</button>
+          <button class="btn ghost" style="border-color:var(--green);color:var(--green);font-size:11px;padding:9px 14px" onclick="go({screen:'learn'})">⌘ Reference</button>
+        </div>
+        ${know}
+      </div>
+      <div>
+        <div class="eyebrow" style="margin-bottom:8px">Commands by purpose</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">${filters}</div>
+        <div style="display:grid;gap:7px">${list}</div>
+      </div>
+    </div>
+    <div class="nav" style="margin-top:20px"><button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="go({screen:'home'})">Home</button></div></div>
+  <style>@media(max-width:860px){.sb-grid{grid-template-columns:1fr !important}}</style>`;
+  const inp=document.getElementById("sb-in");if(inp&&inp.focus)try{inp.focus();}catch(e){}
+}
+
 /* ---------------- ROUTER ---------------- */
 function render(){
   if(cloud.on&&!cloud.token){renderCloudAuth();return;}
@@ -2941,6 +3397,7 @@ function render(){
     case"gate":if(!gt.deck||gt.track!==S.track||gt.level!==S.level||S.fresh){startGate(S.track,S.level);S.fresh=false;}renderGate();break;
     case"stats":renderStats();break;
     case"learn":renderLearn();break;
+    case"sandbox":renderSandbox();break;
     case"cmdlab":if(cl.track!==S.track||!cl.deck||S.fresh){startCmd(S.track);S.fresh=false;}renderCmd();break;
     case"lab":if(!lb.lab||lb.lab.id!==S.id||lb.done&&S.fresh||S.fresh){startLab(S.id);S.fresh=false;}renderLab();break;
     case"quiz":if(quiz.track!==S.track||quiz.level!==S.level||quiz.smart||!quiz.deck||S.fresh){startQuiz(S.track,false,S.level);S.fresh=false;}renderQuiz();break;
