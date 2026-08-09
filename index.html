@@ -28,7 +28,7 @@
   header{position:sticky;top:0;z-index:40;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
     padding:14px 4px;margin:0 -4px 22px;background:rgba(6,9,15,.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
     border-bottom:1px solid var(--line)}
-  .logo{background:none;border:none;cursor:pointer;text-align:left;padding:0}
+  .logo{background:none;border:none;cursor:pointer;text-align:left;padding:0;margin-right:auto}
   .logo h1{font-family:var(--mono);font-size:19px;font-weight:700;color:var(--text);letter-spacing:1px}
   .logo h1 span{color:var(--amber)}
   .logo small{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:2.5px;color:var(--dim);text-transform:uppercase;margin-top:2px}
@@ -53,6 +53,7 @@
   .side{display:grid;gap:14px;position:sticky;top:76px}
   .main-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   .span2{grid-column:1/-1}
+  .pane{min-width:0}
   @media(max-width:920px){
     .home{grid-template-columns:1fr}
     .side{position:static;order:2}
@@ -1707,7 +1708,9 @@ function go(view){S=view;render();window.scrollTo(0,0);}
 window.go=go;
 
 function header(){
+  const atHome=(S.screen||"home")==="home";
   return `<header>
+    ${atHome?"":`<button onclick="goBack()" title="Back" style="background:var(--panel);border:1px solid var(--line);border-radius:11px;color:var(--dim);cursor:pointer;font-size:15px;padding:7px 13px;line-height:1">←</button>`}
     <button class="logo" onclick="go({screen:'home'})">
       <h1>CERT<span>://</span>COMMAND</h1>
       <small>certification training console</small>
@@ -1758,8 +1761,7 @@ function renderHome(){
   const featBtn=(hex,label,act)=>`<button class="btn" style="background:${hex};border-color:${hex};box-shadow:0 8px 22px -10px ${hex}88;font-size:11px;padding:9px 16px" onclick="${act}">${label}</button>`;
 
   /* sidebar — grouped, so it stays short */
-  const side=`<aside class="side">
-    ${navSidebar()}
+  const side=navSidebar(`
     <div class="panel">${osiLadder()}</div>
     <div class="panel" style="font-family:var(--mono);font-size:12px;color:var(--dim);display:grid;gap:7px">
       <div>Daily streak <span style="color:var(--red);float:right">🔥 ${liveStreak()} (best ${stats.daily.best})</span></div>
@@ -1768,7 +1770,7 @@ function renderHome(){
       <div>Commands <span style="color:var(--green);float:right">${cmdSolved}/${CMDS.length}</span></div>
       <button onclick="go({screen:'stats'})" style="background:none;border:none;color:var(--cyan);font-family:var(--mono);font-size:11px;text-align:left;cursor:pointer;padding:2px 0;margin-top:2px">Full stats →</button>
     </div>
-  </aside>`;
+  `);
 
   /* track cards */
   let tracks="";
@@ -3348,7 +3350,7 @@ function renderLearn(){
     let rows=ROSETTA.map(r=>`<tr>
       <td style="padding:10px 12px;border-bottom:1px solid var(--line);font-weight:600;font-size:13px;white-space:nowrap">${esc(r.task)}</td>
       ${cols.map(([k])=>`<td style="padding:10px 12px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11.5px;color:var(--dim)">${esc(r[k])}</td>`).join("")}</tr>`).join("");
-    body=`<div class="panel" style="overflow-x:auto;padding:6px">
+    body=`<div class="panel" data-noswipe style="overflow-x:auto;padding:6px">
       <table style="border-collapse:collapse;min-width:900px;width:100%">
         <thead><tr>${[["","Task"]].concat(cols).map(([k,n])=>`<th style="text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:${k?(LEARN.find(x=>x.id===k)||{}).hex||'var(--dim)':'var(--dim)'}">${esc(n)}</th>`).join("")}</tr></thead>
         <tbody>${rows}</tbody></table></div>
@@ -3512,7 +3514,7 @@ function renderSandbox(){
     <div style="display:grid;grid-template-columns:1fr 330px;gap:14px" class="sb-grid">
       <div>
         <div class="panel" style="padding:0;overflow:hidden">
-          <div style="background:#0A0F1A;padding:15px;font-family:var(--mono);font-size:12.5px;line-height:1.55;max-height:340px;overflow-y:auto">
+          <div data-noswipe style="background:#0A0F1A;padding:15px;font-family:var(--mono);font-size:12.5px;line-height:1.55;max-height:340px;overflow-y:auto">
             ${trans}
             <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
               <span style="color:${d.hex};white-space:nowrap">${esc(prompt)}</span>
@@ -3621,7 +3623,7 @@ window.navToggle=function(id){
   if(g&&!g.items){go({screen:g.screen});return;}
   navOpen=(navOpen===id?null:id);render();
 };
-function navSidebar(){
+function navSidebar(extra){
   const cur=S.screen||"home";
   const activeGroup=(NAV.find(g=>g.screens.includes(cur))||{}).id;
   if(navOpen===null)navOpen=activeGroup;
@@ -3638,7 +3640,7 @@ function navSidebar(){
       </div>`;
     }
   });
-  return `<nav class="panel" style="padding:10px;display:grid;gap:2px">${out}</nav>`;
+  return `<aside class="side"><nav class="panel" style="padding:10px;display:grid;gap:2px">${out}</nav>${extra||""}</aside>`;
 }
 
 /* ---------------- COMMANDS HUB ---------------- */
@@ -3679,6 +3681,15 @@ function renderCommands(){
 }
 
 /* ---------------- ROUTER ---------------- */
+/* Wrap whatever a screen rendered into the persistent sidebar layout,
+   so the nav is always present and only the centre pane changes. */
+function wrapShell(){
+  const h=app.innerHTML;
+  const i=h.indexOf("</header>");
+  if(i<0)return;                            /* sign-in screens have no header */
+  if(h.indexOf('class="side"')>=0)return;   /* dashboard + hub already include it */
+  app.innerHTML=h.slice(0,i+9)+`<div class="home">${navSidebar()}<div class="pane">${h.slice(i+9)}</div></div>`;
+}
 function render(){
   if(cloud.on&&!cloud.token){renderCloudAuth();return;}
   if(!currentPid||lg.mode==="code"||lg.mode==="verify"){renderLogin();return;}
@@ -3708,10 +3719,41 @@ function render(){
     case"explain":if(!epx.deck||S.fresh){startExplain();S.fresh=false;}renderExplain();break;
     case"missed":renderMissed();break;
   }
+  wrapShell();
 }
+/* ---------------- BACK NAVIGATION ---------------- */
+/* Every jump is remembered, so the browser Back button, the header arrow,
+   and a right-swipe on mobile all return you to where you were. */
+let navStack=[];
+window.goBack=function(){
+  if(navStack.length){S=navStack.pop();render();}
+  else if((S.screen||"home")!=="home"){S={screen:"home"};render();}
+  try{window.scrollTo(0,0);}catch(e){}
+};
+function pushHistory(){
+  try{if(typeof history!=="undefined"&&history.pushState)history.pushState({n:navStack.length},"");}catch(e){}
+}
+try{
+  if(typeof window!=="undefined"&&window.addEventListener){
+    window.addEventListener("popstate",function(){window.goBack();});
+    let sx=0,sy=0,st=0;
+    document.addEventListener("touchstart",function(e){const t=e.changedTouches[0];sx=t.clientX;sy=t.clientY;st=Date.now();},{passive:true});
+    document.addEventListener("touchend",function(e){
+      const t=e.changedTouches[0], dx=t.clientX-sx, dy=Math.abs(t.clientY-sy), dt=Date.now()-st;
+      if(dy>70||dt>900)return;
+      let n=e.target;                                   /* ignore sideways-scrolling areas */
+      while(n&&n.hasAttribute){ if(n.hasAttribute("data-noswipe"))return; n=n.parentNode; }
+      if((sx<60&&dx>70)||dx>150)window.goBack();
+    },{passive:true});
+  }
+}catch(e){}
+
 /* fresh flags so re-entering a mode restarts it */
 const _go=go;
-window.go=function(v){v.fresh=true;_go(v);};
+window.go=function(v){
+  if(currentPid&&S&&S.screen&&S.screen!==v.screen){navStack.push({...S});if(navStack.length>40)navStack.shift();}
+  v.fresh=true;_go(v);pushHistory();
+};
 
 loadProfiles();
 if(currentPid)load();
