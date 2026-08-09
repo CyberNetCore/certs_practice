@@ -872,6 +872,115 @@ ac:[/^show system lldp neighbor$/],hint:"It lives under 'system' here, not 'rout
 ];
 Array.prototype.push.apply(CMDS,CMDX);
 
+/* ============================ SUBNETTING DRILL GENERATOR ============================ */
+/* Infinite generated questions — the one skill that rewards raw reps. */
+const DRILL={
+  net:"Network address", bcast:"Broadcast address", range:"Usable host range",
+  hosts:"Usable host count", subnets:"Subnets needed", need:"Hosts needed",
+  wild:"Wildcard mask", belongs:"Which subnet", mask:"Mask ↔ CIDR", summ:"Summarisation"
+};
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const i2ip=n=>[(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255].join(".");
+const ip2i=s=>s.split(".").reduce((a,o)=>((a<<8)>>>0)+(+o),0)>>>0;
+const p2mask=p=>p===0?0:((0xFFFFFFFF<<(32-p))>>>0);
+const maskStr=p=>i2ip(p2mask(p));
+const wildStr=p=>i2ip((~p2mask(p))>>>0);
+function randHost(p){
+  /* a believable private address inside a random network of that prefix */
+  const bases=[ip2i("10.0.0.0"),ip2i("172.16.0.0"),ip2i("192.168.0.0")];
+  const b=bases[rnd(0,2)];
+  const span=Math.min(2**(32-Math.max(p-8,1)), 65536);
+  return (b + rnd(0,span-1))>>>0;
+}
+function opts(correct,wrongs){
+  const seen=new Set([String(correct)]);
+  const list=[correct];
+  wrongs.forEach(w=>{const k=String(w);if(w!==null&&w!==undefined&&!seen.has(k)){seen.add(k);list.push(w);}});
+  while(list.length<4)list.push("None of these"+" ".repeat(list.length));
+  const four=list.slice(0,4);
+  const shuffled=shuffle(four);
+  return {a:shuffled.map(String),c:shuffled.indexOf(correct)};
+}
+function genDrill(kind){
+  const kinds=Object.keys(DRILL);
+  const k=kind&&kind!=="mixed"?kind:kinds[rnd(0,kinds.length-1)];
+  let p,ip,net,bc,o;
+
+  if(k==="net"){
+    p=rnd(9,30); ip=randHost(p); net=(ip&p2mask(p))>>>0;
+    o=opts(i2ip(net),[i2ip((net+1)>>>0), i2ip((ip|(~p2mask(p)>>>0))>>>0), i2ip((ip&p2mask(Math.max(8,p-1)))>>>0)]);
+    return {q:`What is the NETWORK address of ${i2ip(ip)}/${p}?`,...o,k,
+      x:`Mask /${p} = ${maskStr(p)}. AND the address with the mask: bits inside the mask stay, host bits go to zero → ${i2ip(net)}. Shortcut: block size in the interesting octet is ${256-(p2mask(p)>>>(8*(3-Math.floor((p-1)/8))))&255||256}, so round the address DOWN to the nearest multiple.`};
+  }
+  if(k==="bcast"){
+    p=rnd(9,30); ip=randHost(p); net=(ip&p2mask(p))>>>0; bc=(net|(~p2mask(p)>>>0))>>>0;
+    o=opts(i2ip(bc),[i2ip((bc-1)>>>0), i2ip(net), i2ip((bc+1)>>>0)]);
+    return {q:`What is the BROADCAST address of ${i2ip(ip)}/${p}?`,...o,k,
+      x:`Network is ${i2ip(net)}. Broadcast = network with every host bit set to 1 → ${i2ip(bc)}. Equivalent shortcut: the next network (${i2ip((bc+1)>>>0)}) minus one.`};
+  }
+  if(k==="range"){
+    p=rnd(9,30); ip=randHost(p); net=(ip&p2mask(p))>>>0; bc=(net|(~p2mask(p)>>>0))>>>0;
+    const good=`${i2ip((net+1)>>>0)} – ${i2ip((bc-1)>>>0)}`;
+    o=opts(good,[`${i2ip(net)} – ${i2ip(bc)}`,`${i2ip((net+1)>>>0)} – ${i2ip(bc)}`,`${i2ip(net)} – ${i2ip((bc-1)>>>0)}`]);
+    return {q:`What is the USABLE host range for ${i2ip(ip)}/${p}?`,...o,k,
+      x:`Network ${i2ip(net)}, broadcast ${i2ip(bc)}. Usable = everything between them, so first host is network+1 and last is broadcast−1 → ${good}.`};
+  }
+  if(k==="hosts"){
+    p=rnd(16,30); const n=Math.pow(2,32-p)-2;
+    o=opts(String(n),[String(n+2),String(n+1),String(Math.pow(2,32-p-1)-2)]);
+    return {q:`How many USABLE host addresses does a /${p} provide?`,...o,k,
+      x:`/${p} leaves ${32-p} host bits → 2^${32-p} = ${Math.pow(2,32-p)} total addresses. Subtract the network and broadcast → ${n} usable.`};
+  }
+  if(k==="subnets"){
+    const base=[8,16,24][rnd(0,2)]; const want=[2,4,6,8,12,16,30,32][rnd(0,7)];
+    const bits=Math.ceil(Math.log2(want)); const np=base+bits;
+    o=opts("/"+np,["/"+(np+1),"/"+(np-1),"/"+(base+want)]);
+    return {q:`You need at least ${want} equal subnets from a /${base}. Which prefix do you use?`,...o,k,
+      x:`Borrow bits until 2^bits ≥ ${want}: 2^${bits} = ${Math.pow(2,bits)} ✓. /${base} + ${bits} = /${np}, which leaves ${Math.pow(2,32-np)-2} usable hosts per subnet.`};
+  }
+  if(k==="need"){
+    const want=[6,12,25,50,60,100,200,500,1000][rnd(0,8)];
+    const bits=Math.ceil(Math.log2(want+2)); const p2=32-bits;
+    o=opts("/"+p2,["/"+(p2+1),"/"+(p2-1),"/"+(32-Math.ceil(Math.log2(want)))]);
+    return {q:`A subnet must hold ${want} hosts. What is the LARGEST prefix (smallest subnet) that fits?`,...o,k,
+      x:`You need ${want} hosts plus network and broadcast = ${want+2} addresses. 2^${bits} = ${Math.pow(2,bits)} ≥ ${want+2} ✓, so keep ${bits} host bits → /${p2} (${Math.pow(2,bits)-2} usable). Forgetting the +2 is the classic trap.`};
+  }
+  if(k==="wild"){
+    p=rnd(8,30);
+    o=opts(wildStr(p),[maskStr(p),wildStr(Math.min(30,p+1)),wildStr(Math.max(8,p-1))]);
+    return {q:`What is the WILDCARD mask for a /${p} (as used in an ACL or OSPF network statement)?`,...o,k,
+      x:`Subnet mask /${p} = ${maskStr(p)}. The wildcard is its inverse — subtract each octet from 255 → ${wildStr(p)}. 0 bits must match, 1 bits are ignored.`};
+  }
+  if(k==="belongs"){
+    p=rnd(25,30); ip=randHost(p); net=(ip&p2mask(p))>>>0;
+    const block=Math.pow(2,32-p);
+    o=opts(`${i2ip(net)}/${p}`,[`${i2ip((net+block)>>>0)}/${p}`,`${i2ip((net-block)>>>0)}/${p}`,`${i2ip(net)}/${p-1}`]);
+    return {q:`Which subnet contains the host ${i2ip(ip)} when the network is subnetted into /${p}s?`,...o,k,
+      x:`Block size for /${p} is ${block}. Find the multiple of ${block} at or below the interesting octet → network ${i2ip(net)}, broadcast ${i2ip((net+block-1)>>>0)}.`};
+  }
+  if(k==="mask"){
+    p=rnd(8,30);
+    if(Math.random()<0.5){
+      o=opts("/"+p,["/"+(p+1),"/"+(p-1),"/"+(p+8>30?p-8:p+8)]);
+      return {q:`Express the subnet mask ${maskStr(p)} in CIDR notation.`,...o,k,
+        x:`Count the 1 bits: ${maskStr(p)} = ${p} network bits → /${p}, leaving ${32-p} host bits.`};
+    }
+    o=opts(maskStr(p),[maskStr(Math.min(32,p+1)),maskStr(Math.max(1,p-1)),wildStr(p)]);
+    return {q:`Write the subnet mask for /${p} in dotted decimal.`,...o,k,
+      x:`/${p} means ${p} leading 1 bits → ${maskStr(p)}. The remaining ${32-p} bits are host bits.`};
+  }
+  /* summarisation */
+  const cnt=[2,4,8,16][rnd(0,3)];
+  const bits=Math.log2(cnt);
+  const third=rnd(0,255-cnt)&~(cnt-1);
+  const base=`10.${rnd(1,250)}.${third}.0`;
+  const sp=24-bits;
+  const last=`10.${base.split(".")[1]}.${third+cnt-1}.0`;
+  o=opts(`${base}/${sp}`,[`${base}/${sp-1}`,`${base}/${sp+1}`,`${base}/24`]);
+  return {q:`Summarise these ${cnt} contiguous networks into one route: ${base}/24 through ${last}/24.`,...o,k,
+    x:`${cnt} contiguous /24s = 2^${bits}, so pull back ${bits} bit${bits>1?"s":""} from /24 → /${sp}. The summary ${base}/${sp} covers exactly ${base} to ${last} and nothing more.`};
+}
+
 /* ============================ COMMAND SANDBOX ============================ */
 /* Free-play CLI per platform. Every recognised command returns realistic output
    plus a knowledge card: what it does, syntax, when you'd reach for it.
@@ -1607,7 +1716,7 @@ function saveProfiles(){store.set("cc-profiles",JSON.stringify(profiles));}
 function setRemember(on){store.set("cc-current",(on&&currentPid)?currentPid:"");}
 function pkey(k){return "cc:"+currentPid+":"+k;}
 function initials(n){return n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();}
-function defStats(){return{xp:0,bestStreak:0,blitzBest:0,perTrack:Object.fromEntries(Object.keys(TRACKS).map(k=>[k,{seen:0,correct:0}])),exams:{},daily:{last:null,streak:0,best:0},scen:{},expl:{},diag:{},cmd:{},kotd:{date:null},gate:{},labs:{},time:{date:null,ms:0,goal:90},days:{}};}
+function defStats(){return{xp:0,bestStreak:0,blitzBest:0,perTrack:Object.fromEntries(Object.keys(TRACKS).map(k=>[k,{seen:0,correct:0}])),exams:{},daily:{last:null,streak:0,best:0},scen:{},expl:{},diag:{},cmd:{},kotd:{date:null},gate:{},labs:{},time:{date:null,ms:0,goal:90},days:{},drill:{seen:0,correct:0,best:0}};}
 function load(){
   try{stats={...defStats(),...JSON.parse(store.get(pkey("stats"))||"{}")};}catch(e){stats=defStats();}
   try{qstats=JSON.parse(store.get(pkey("qstats"))||"{}");}catch(e){qstats={};}
@@ -1622,6 +1731,7 @@ function load(){
   if(!stats.gate)stats.gate={};
   if(!stats.labs)stats.labs={};
   if(!stats.time)stats.time={date:null,ms:0,goal:90};
+  if(!stats.drill)stats.drill={seen:0,correct:0,best:0};
   Object.keys(TRACKS).forEach(k=>{if(!stats.perTrack[k])stats.perTrack[k]={seen:0,correct:0};});
 }
 
@@ -1686,9 +1796,38 @@ function liveStreak(){
   const t=dstr(new Date()), y=dstr(new Date(Date.now()-864e5));
   return (d.last===t||d.last===y)?d.streak:0;
 }
+/* ---- spaced repetition (SM-2 style, simplified) ----
+   Correct answers push an item further into the future; misses drag it back to today.
+   Intervals: 1d → 3d → then multiplied by an ease factor that moves with your accuracy. */
+const DAY=864e5;
+function schedule(s,correct){
+  s.ease=s.ease||2.5; s.reps=s.reps||0; s.ivl=s.ivl||0;
+  if(correct){
+    s.reps++;
+    s.ivl = s.reps===1?1 : s.reps===2?3 : Math.min(180,Math.round(s.ivl*s.ease));
+    s.ease=Math.min(2.8,s.ease+0.05);
+  }else{
+    s.reps=0; s.ivl=0;
+    s.ease=Math.max(1.3,s.ease-0.2);
+  }
+  s.due=Date.now()+s.ivl*DAY;
+  return s;
+}
+function dueNow(q){
+  const s=qstats[qid(q)];
+  if(!s)return false;              /* unseen items are "new", not "due" */
+  return (s.due||0)<=Date.now();
+}
+function dueCount(track){
+  return Q.filter(q=>(!track||q.t===track)&&dueNow(q)).length;
+}
+function newCount(track){
+  return Q.filter(q=>(!track||q.t===track)&&!qstats[qid(q)]).length;
+}
 function recordAnswer(q,correct){
   const id=qid(q), s=qstats[id]||{seen:0,miss:0,streak:0};
   s.seen++; if(correct){s.streak++;}else{s.miss++;s.streak=0;}
+  schedule(s,correct);
   qstats[id]=s;
   stats.perTrack[q.t].seen++; if(correct)stats.perTrack[q.t].correct++;
   touchStreak();bumpA();
@@ -1698,15 +1837,28 @@ function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Ma
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function layerOf(xp){return Math.min(7,Math.floor(xp/XP_LAYER)+1);}
 
-/* Smart review deck: prioritize missed and unseen questions */
+/* Smart Review = spaced repetition queue.
+   Anything due comes first (most overdue, most missed), then new material fills the rest. */
 function smartDeck(n){
-  const scored=Q.map(q=>{
-    const s=qstats[qid(q)]||{seen:0,miss:0,streak:0};
-    let w = s.miss*3 + (s.seen===0?2:0) - Math.min(s.streak,3) + Math.random();
-    return {q,w};
-  });
-  scored.sort((a,b)=>b.w-a.w);
-  return scored.slice(0,n).map(o=>o.q);
+  const now=Date.now();
+  const due=Q.filter(dueNow).map(q=>{
+    const s=qstats[qid(q)];
+    return {q,w:(now-(s.due||0))/DAY + s.miss*2 + Math.random()*0.5};
+  }).sort((a,b)=>b.w-a.w).map(o=>o.q);
+  if(due.length>=n)return due.slice(0,n);
+  const fresh=shuffle(Q.filter(q=>!qstats[qid(q)]));
+  const deck=due.concat(fresh.slice(0,n-due.length));
+  if(deck.length)return deck;
+  /* everything scheduled ahead — pull the nearest-due items so a session is never empty */
+  return Q.map(q=>({q,d:(qstats[qid(q)]||{}).due||0})).sort((a,b)=>a.d-b.d).slice(0,n).map(o=>o.q);
+}
+function nextDueLabel(){
+  const ds=Q.map(q=>(qstats[qid(q)]||{}).due).filter(Boolean).sort((a,b)=>a-b);
+  if(!ds.length)return "";
+  const t=ds.find(d=>d>Date.now());
+  if(!t)return "";
+  const h=Math.round((t-Date.now())/36e5);
+  return h<24?("next review in "+Math.max(1,h)+"h"):("next review in "+Math.round(h/24)+"d");
 }
 
 /* ============================ RENDER ============================ */
@@ -1761,6 +1913,7 @@ function renderHome(){
   const labsDone=LABS.filter(l=>stats.labs[l.id]).length;
   const placed=Object.keys(stats.diag).length;
   const weak=Q.filter(q=>{const s=qstats[qid(q)];return s&&s.miss>0&&s.streak<2;}).length;
+  const due=dueCount();
   const me=(cloud.user&&cloud.user.first)||((profiles.find(p=>p.id===currentPid)||{}).first)||"";
 
   let blockHtml="";
@@ -1774,7 +1927,7 @@ function renderHome(){
   /* how it works — four steps */
   const steps=[
     ["1","Test","#FFB347","Take the knowledge test. It maps what you already know and unlocks the right level so you skip the easy stuff.","go({screen:'diag'})","Test your knowledge"],
-    ["2","Practice","#3FD6C6","Drill your level, and let Smart Review keep feeding back whatever you miss until it sticks.","go({screen:'studyHub'})","Go to Study"],
+    ["2","Practice","#3FD6C6","Drill your level. Smart Review then schedules each item to come back right before you'd forget it — and subnetting drills generate endless fresh reps.","go({screen:'studyHub'})","Go to Study"],
     ["3","Understand","#5B9DFF","Read the scenario behind a concept, then explain it back out loud. This is what beats reworded exam questions.","go({screen:'learnHub'})","Go to Learn"],
     ["4","Prove it","#7BD88F","Type the real commands, finish a lab, then sit a timed practice exam against the real pass line.","go({screen:'commands'})","Go to Commands"],
   ].map(([n,t,c,d,act,label])=>`<div class="panel" style="border-left:3px solid ${c}">
@@ -1798,6 +1951,7 @@ function renderHome(){
 
   const side=navSidebar(`<div class="panel">${osiLadder()}</div>
     <div class="panel" style="font-family:var(--mono);font-size:12px;color:var(--dim);display:grid;gap:7px">
+      <div>Due today <span style="color:${due?'var(--cyan)':'var(--dim)'};float:right">${due}${due?"":" ✓"}</span></div>
       <div>Daily streak <span style="color:var(--red);float:right">🔥 ${liveStreak()} (best ${stats.daily.best})</span></div>
       <div>Scenarios <span style="color:var(--blue);float:right">${Object.keys(stats.scen).length}/${SCEN.length}</span></div>
       <div>Concepts <span style="color:var(--purple);float:right">${Object.keys(stats.expl).length}/${EXPLAIN.length}</span></div>
@@ -1816,8 +1970,10 @@ function renderHome(){
         built around understanding the material well enough to explain it, not just recognise it.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
         ${inProgress?`<button class="btn" style="background:var(--cyan);border-color:var(--cyan);box-shadow:0 8px 22px -10px #3FD6C688" onclick="resumeQuiz()">Resume — ${quiz.smart?"Smart Review":TRACKS[quiz.track].name} q${quiz.i+1}/${quiz.deck.length}</button>`
-          :placed?`<button class="btn" onclick="go({screen:'smart'})">Continue studying</button>`
-          :`<button class="btn" onclick="go({screen:'diag'})">Start with the knowledge test</button>`}
+          :!placed?`<button class="btn" onclick="go({screen:'diag'})">Start with the knowledge test</button>`
+          :due?`<button class="btn" style="background:var(--cyan);border-color:var(--cyan);box-shadow:0 8px 22px -10px #3FD6C688" onclick="go({screen:'smart'})">Review ${due} due today</button>`
+          :`<button class="btn" onclick="go({screen:'smart'})">Continue studying</button>`}
+        <button class="btn ghost" style="border-color:var(--blue);color:var(--blue)" onclick="go({screen:'drill'})"># Subnetting drill</button>
         ${weak?`<button class="btn ghost" style="border-color:var(--red);color:var(--red)" onclick="go({screen:'missed'})">${weak} weak items to fix</button>`:""}
       </div>
     </div>
@@ -2247,7 +2403,7 @@ function renderQuiz(){
       ${rel?`<button class="btn ghost" style="border-color:var(--blue);color:var(--blue);margin-top:12px;font-size:11px;padding:8px 14px" onclick="go({screen:'scen',id:'${rel.id}',back:'quiz'})">◫ Deep dive: ${esc(rel.title)} →</button>`:''}</div>`;
   }
   app.innerHTML=header()+`<div style="max-width:720px;margin:0 auto">
-    <div class="qbar"><span class="eyebrow" style="color:${t.hex}">${t.name}${quiz.smart?` · ${TRACKS[q.t].short}`:''} · Q${quiz.i+1}/${quiz.deck.length}</span>
+    <div class="qbar"><span class="eyebrow" style="color:${t.hex}">${t.name}${quiz.smart?` · ${TRACKS[q.t].short}`:''} · Q${quiz.i+1}/${quiz.deck.length}${quiz.smart?` · ${dueCount()} due`:''}</span>
     <span style="color:${lv.c};font-size:11px;letter-spacing:1px">${lv.n.toUpperCase()}</span>
     <span style="color:${quiz.streak>=3?'var(--amber)':'var(--dim)'}">streak ${quiz.streak}${quiz.streak>=3?' 🔥':''}</span></div>
     <div class="panel"><div style="font-size:17px;line-height:1.5">${esc(q.q)}</div>
@@ -3263,6 +3419,8 @@ function renderStats(){
           <div>Concepts mastered <span style="color:var(--purple);float:right">${Object.keys(stats.expl).length}/${EXPLAIN.length}</span></div>
           <div>Commands solved <span style="color:var(--green);float:right">${CMDS.filter(c=>stats.cmd[c.id]===true).length}/${CMDS.length}</span></div>
           <div>Labs complete <span style="color:var(--red);float:right">${LABS.filter(l=>stats.labs[l.id]).length}/${LABS.length}</span></div>
+          <div>Subnetting drills <span style="color:var(--blue);float:right">${(stats.drill||{}).correct||0}/${(stats.drill||{}).seen||0}</span></div>
+          <div>Due for review <span style="color:var(--cyan);float:right">${dueCount()}</span></div>
         </div>
         ${cloud.on?`<div class="panel" style="display:grid;gap:10px">
           <span class="eyebrow">Account</span>
@@ -3577,9 +3735,9 @@ function renderTasks(){
 const NAV=[
  {id:"dash",label:"Dashboard",sym:"▦",hex:"#FFB347",screen:"home",screens:["home"],items:[]},
  {id:"study",label:"Study",sym:"◎",hex:"#3FD6C6",screen:"studyHub",
-  screens:["studyHub","diag","diagReport","smart","quiz","levels","gate","cards","blitz","missed","examIntro","exam","examReport"],
+  screens:["studyHub","diag","diagReport","smart","quiz","levels","gate","cards","blitz","missed","examIntro","exam","examReport","drill"],
   items:[["Overview","go({screen:'studyHub'})"],["Test your knowledge","go({screen:'diag'})"],["Smart Review","go({screen:'smart'})"],
-         ["Blitz mode","go({screen:'blitz'})"],["Missed log","go({screen:'missed'})"]]},
+         ["Subnetting drills","go({screen:'drill'})"],["Blitz mode","go({screen:'blitz'})"],["Missed log","go({screen:'missed'})"]]},
  {id:"cmds",label:"Commands",sym:"⌘",hex:"#7BD88F",screen:"commands",
   screens:["commands","sandbox","tasks","learn","cmdlab","lab"],
   items:[["Overview","go({screen:'commands'})"],["Sandbox","go({screen:'sandbox'})"],["Task finder","go({screen:'tasks'})"],
@@ -3684,8 +3842,12 @@ function renderStudyHub(){
       placed?"Re-map where you stand — 25 questions across all certs":"25 questions across all certs. Maps what you know, places you at the right level, and unlocks it.",
       `<button class="btn" style="font-size:11px;padding:9px 16px" onclick="go({screen:'diag'})">${placed?"Retest":"Start"}</button>`)+
     `<div class="main-grid">
-      ${hubCard("◎","#3FD6C6","Smart Review",`Adaptive drill built from your misses${weak?` · <span style="color:var(--amber)">${weak} weak items queued</span>`:""}`,
-        `<button class="btn" style="background:var(--cyan);border-color:var(--cyan);font-size:11px;padding:9px 16px" onclick="go({screen:'smart'})">Start</button>`)}
+      ${hubCard("◎","#3FD6C6","Smart Review",
+        `Spaced repetition — items come back right before you'd forget them.<br><span style="color:var(--text)">${dueCount()} due now · ${newCount()} never seen</span>${dueCount()===0&&nextDueLabel()?` · <span style="color:var(--dim)">${nextDueLabel()}</span>`:""}`,
+        `<button class="btn" style="background:var(--cyan);border-color:var(--cyan);font-size:11px;padding:9px 16px" onclick="go({screen:'smart'})">${dueCount()?"Review "+dueCount():"Start"}</button>`)}
+      ${hubCard("#","#5B9DFF","Subnetting drills",
+        `Infinitely generated — network, broadcast, ranges, VLSM, wildcards, summarisation${stats.drill&&stats.drill.seen?` · <span style="color:var(--text)">${stats.drill.correct}/${stats.drill.seen} lifetime</span>`:""}`,
+        `<button class="btn" style="background:var(--blue);border-color:var(--blue);font-size:11px;padding:9px 16px" onclick="go({screen:'drill'})">Drill</button>`)}
       ${hubCard("⚡","#FFB347","Blitz mode",`60 seconds, all certs mixed · best ${stats.blitzBest}`,
         `<button class="btn" style="font-size:11px;padding:9px 16px" onclick="go({screen:'blitz'})">Launch</button>`)}
       ${hubCard("✕","#F4634E","Missed log","Every question you've gotten wrong, with the fix",
@@ -3716,6 +3878,59 @@ function renderLearnHub(){
       <div style="margin-top:12px">${claimed?`<span class="stat" style="color:var(--cyan)">✓ absorbed today</span>`:`<button class="btn ghost" style="border-color:${TRACKS[nug.t].hex};color:${TRACKS[nug.t].hex};font-size:11px;padding:8px 14px" onclick="kotdClaim()">Got it · +10 XP</button>`}</div></div>`);
 }
 
+/* ---------------- SUBNETTING DRILLS ---------------- */
+let dr={kind:"mixed",q:null,picked:null,score:0,seen:0,streak:0,best:0};
+window.drKind=function(k){dr={kind:k,q:genDrill(k),picked:null,score:0,seen:0,streak:0,best:dr.best};render();};
+window.drNext=function(){dr.q=genDrill(dr.kind);dr.picked=null;render();};
+window.drPick=function(i){
+  if(dr.picked!==null)return;
+  dr.picked=i; dr.seen++;
+  const ok=i===dr.q.c;
+  if(ok){dr.score++;dr.streak++;dr.best=Math.max(dr.best,dr.streak);stats.xp+=10;}
+  else dr.streak=0;
+  stats.drill=stats.drill||{seen:0,correct:0,best:0};
+  stats.drill.seen++; if(ok)stats.drill.correct++;
+  stats.drill.best=Math.max(stats.drill.best||0,dr.streak);
+  touchStreak();bumpA();save();render();
+};
+function renderDrill(){
+  if(!dr.q)dr.q=genDrill(dr.kind);
+  const q=dr.q, picked=dr.picked;
+  const kinds=[["mixed","Mixed"]].concat(Object.entries(DRILL));
+  const pills=kinds.map(([k,l])=>`<button class="btn ghost" style="border-color:${dr.kind===k?'var(--cyan)':'var(--line)'};color:${dr.kind===k?'var(--cyan)':'var(--dim)'};font-size:9.5px;padding:6px 11px" onclick="drKind('${k}')">${esc(l)}</button>`).join("");
+  let optsHtml="";
+  q.a.forEach((opt,i)=>{
+    let cls="opt",mk=String.fromCharCode(65+i);
+    if(picked!==null){ if(i===q.c){cls+=" correct";mk="✓";} else if(i===picked){cls+=" wrong";mk="✗";} }
+    optsHtml+=`<button class="${cls}" style="font-family:var(--mono);font-size:14px" onclick="drPick(${i})"><span class="mk">${mk}</span>${esc(opt)}</button>`;
+  });
+  const lifetime=stats.drill||{seen:0,correct:0,best:0};
+  app.innerHTML=header()+`<div class="home">${navSidebar()}<div>
+    <span class="eyebrow" style="color:var(--cyan)">Subnetting Drills</span>
+    <h2 class="screen-title" style="margin:4px 0 6px">Endless generated practice</h2>
+    <p style="font-size:13px;color:var(--dim)">Every question is generated fresh, so you can't memorise answers — only the method. Pick a type or take them mixed.</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:14px 0">${pills}</div>
+    <div class="qbar">
+      <span class="eyebrow" style="color:var(--cyan)">${esc(dr.kind==="mixed"?"Mixed":DRILL[dr.kind])}</span>
+      <span style="color:${dr.streak>=3?'var(--amber)':'var(--dim)'}">streak ${dr.streak}${dr.streak>=3?' 🔥':''}</span>
+      <span style="color:var(--dim)">${dr.score}/${dr.seen} this session</span></div>
+    <div class="panel">
+      <div style="font-size:17px;line-height:1.5">${esc(q.q)}</div>
+      <div class="grid" style="margin-top:18px">${optsHtml}</div>
+      ${picked!==null?`<div class="explain ${picked===q.c?'':'bad'}">
+        <span class="tag" style="color:${picked===q.c?'var(--cyan)':'var(--red)'}">${picked===q.c?'Correct · +10 XP':'Not quite'}</span>
+        <div style="margin-top:7px;line-height:1.65">${esc(q.x)}</div></div>`:''}
+    </div>
+    <div class="nav">
+      <button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="go({screen:'studyHub'})">Exit</button>
+      <div style="display:flex;gap:10px;align-items:center">
+        <span class="stat" style="color:var(--dim)">lifetime ${lifetime.correct}/${lifetime.seen} · best streak ${lifetime.best||0}</span>
+        ${picked!==null?`<button class="btn" style="background:var(--cyan);border-color:var(--cyan)" onclick="drNext()">Next →</button>`
+          :`<button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="drNext()">Skip</button>`}
+      </div></div>
+  </div></div>`;
+}
+
 /* ---------------- ROUTER ---------------- */
 /* Wrap whatever a screen rendered into the persistent sidebar layout,
    so the nav is always present and only the centre pane changes. */
@@ -3742,6 +3957,7 @@ function render(){
     case"tasks":renderTasks();break;
     case"commands":renderCommands();break;
     case"studyHub":renderStudyHub();break;
+    case"drill":renderDrill();break;
     case"learnHub":renderLearnHub();break;
     case"cmdlab":if(cl.track!==S.track||!cl.deck||S.fresh){startCmd(S.track);S.fresh=false;}renderCmd();break;
     case"lab":if(!lb.lab||lb.lab.id!==S.id||lb.done&&S.fresh||S.fresh){startLab(S.id);S.fresh=false;}renderLab();break;
