@@ -25,9 +25,16 @@
     radial-gradient(720px 520px at 96% 100%, rgba(63,214,198,.10), transparent 65%),
     radial-gradient(480px 360px at 70% 8%, rgba(91,157,255,.07), transparent 60%);}
   #app{max-width:1120px;margin:0 auto;padding:0 18px}
-  header{position:sticky;top:0;z-index:40;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
-    padding:14px 4px;margin:0 -4px 22px;background:rgba(6,9,15,.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  header{position:sticky;top:0;z-index:40;display:flex;flex-direction:column;gap:11px;
+    padding:13px 4px 10px;margin:0 -4px 22px;background:rgba(6,9,15,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
     border-bottom:1px solid var(--line)}
+  .hrow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .topnav{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
+  .topnav::-webkit-scrollbar{display:none}
+  .topbtn{background:none;border:1px solid transparent;border-radius:10px;color:var(--dim);cursor:pointer;
+    font-family:var(--sans);font-size:13px;font-weight:600;padding:8px 14px;white-space:nowrap;transition:color .15s,background .15s}
+  .topbtn:hover{color:var(--text);background:var(--panel2)}
+  .topbtn.on{background:var(--panel2)}
   .logo{background:none;border:none;cursor:pointer;text-align:left;padding:0;margin-right:auto}
   .logo h1{font-family:var(--mono);font-size:19px;font-weight:700;color:var(--text);letter-spacing:1px}
   .logo h1 span{color:var(--amber)}
@@ -1710,6 +1717,7 @@ window.go=go;
 function header(){
   const atHome=(S.screen||"home")==="home";
   return `<header>
+    <div class="hrow">
     ${atHome?"":`<button onclick="goBack()" title="Back" style="background:var(--panel);border:1px solid var(--line);border-radius:11px;color:var(--dim);cursor:pointer;font-size:15px;padding:7px 13px;line-height:1">←</button>`}
     <button class="logo" onclick="go({screen:'home'})">
       <h1>CERT<span>://</span>COMMAND</h1>
@@ -1721,6 +1729,8 @@ function header(){
       ${(()=>{const p=profiles.find(x=>x.id===currentPid);return p?`<button onclick="go({screen:'stats'})" title="${esc(p.name)} — my stats" style="width:36px;height:36px;border-radius:50%;background:${p.color};color:#0B1220;border:none;cursor:pointer;font-weight:800;font-family:var(--mono);font-size:13px">${esc(initials(p.name))}</button>
       <button onclick="${cloud.on?'cloudSignOut()':'switchProfile()'}" title="Sign out" style="background:none;border:1px solid var(--line);border-radius:10px;color:var(--dim);cursor:pointer;font-size:13px;padding:8px 10px">⎋</button>`:"";})()}
     </div>
+    </div>
+    ${topNav()}
   </header>`;
 }
 
@@ -1744,138 +1754,102 @@ function osiLadder(){
 
 /* ---------------- HOME ---------------- */
 function renderHome(){
-  const weakCount=Q.filter(q=>{const s=qstats[qid(q)];return s&&s.miss>0&&s.streak<2;}).length;
-  const kotdIdx=Math.floor(Date.now()/864e5)%KOTD.length;
-  const nug=KOTD[kotdIdx];
+  const nug=KOTD[Math.floor(Date.now()/864e5)%KOTD.length];
   const claimed=stats.kotd.date===dstr(new Date());
-  const cmdSolved=CMDS.filter(c=>stats.cmd[c.id]===true).length;
   const mins=todayMins(), goal=stats.time.goal, blocks=Math.ceil(goal/30), sMin=sessionMins();
+  const cmdSolved=CMDS.filter(c=>stats.cmd[c.id]===true).length;
+  const labsDone=LABS.filter(l=>stats.labs[l.id]).length;
+  const placed=Object.keys(stats.diag).length;
+  const weak=Q.filter(q=>{const s=qstats[qid(q)];return s&&s.miss>0&&s.streak<2;}).length;
+  const me=(cloud.user&&cloud.user.first)||((profiles.find(p=>p.id===currentPid)||{}).first)||"";
+
   let blockHtml="";
   for(let b=0;b<blocks;b++){
     const filled=Math.max(0,Math.min(30,mins-b*30));
-    blockHtml+=`<div style="flex:1;height:10px;background:var(--panel2);border:1px solid var(--line);border-radius:5px;overflow:hidden"><div style="height:100%;width:${filled/30*100}%;background:${mins>=goal?'var(--cyan)':'linear-gradient(90deg,#FFC167,#FFA22E)'}"></div></div>`;
+    blockHtml+=`<div style="flex:1;height:9px;background:var(--panel2);border:1px solid var(--line);border-radius:5px;overflow:hidden"><div style="height:100%;width:${filled/30*100}%;background:${mins>=goal?'var(--cyan)':'linear-gradient(90deg,#FFC167,#FFA22E)'}"></div></div>`;
   }
-  const labsDone=LABS.filter(l=>stats.labs[l.id]).length;
+  const quizDone = quiz.deck && quiz.i>=quiz.deck.length-1 && quiz.picked!==null;
+  const inProgress = quiz.deck && quiz.i<quiz.deck.length && !quizDone;
 
-  const chip=(bg,sym)=>`<div class="chip" style="background:${bg}">${sym}</div>`;
-  const featBtn=(hex,label,act)=>`<button class="btn" style="background:${hex};border-color:${hex};box-shadow:0 8px 22px -10px ${hex}88;font-size:11px;padding:9px 16px" onclick="${act}">${label}</button>`;
+  /* how it works — four steps */
+  const steps=[
+    ["1","Test","#FFB347","Take the knowledge test. It maps what you already know and unlocks the right level so you skip the easy stuff.","go({screen:'diag'})","Test your knowledge"],
+    ["2","Practice","#3FD6C6","Drill your level, and let Smart Review keep feeding back whatever you miss until it sticks.","go({screen:'studyHub'})","Go to Study"],
+    ["3","Understand","#5B9DFF","Read the scenario behind a concept, then explain it back out loud. This is what beats reworded exam questions.","go({screen:'learnHub'})","Go to Learn"],
+    ["4","Prove it","#7BD88F","Type the real commands, finish a lab, then sit a timed practice exam against the real pass line.","go({screen:'commands'})","Go to Commands"],
+  ].map(([n,t,c,d,act,label])=>`<div class="panel" style="border-left:3px solid ${c}">
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span style="font-family:var(--mono);font-size:11px;color:${c}">${n}</span>
+        <h3 style="font-size:15px;font-weight:700;color:${c}">${t}</h3></div>
+      <p style="font-size:12.5px;color:var(--dim);line-height:1.55;margin-top:7px">${d}</p>
+      <button class="btn ghost" style="border-color:${c};color:${c};font-size:10px;padding:8px 12px;margin-top:11px" onclick="${act}">${label} →</button>
+    </div>`).join("");
 
-  /* sidebar — grouped, so it stays short */
-  const side=navSidebar(`
-    <div class="panel">${osiLadder()}</div>
+  /* where things live */
+  const map=NAV.filter(g=>g.id!=="dash").map(g=>`<button class="panel" style="text-align:left;cursor:pointer;padding:13px 15px;border-left:3px solid ${g.hex};color:var(--text)" onclick="navGo('${g.id}')">
+      <div style="display:flex;align-items:center;gap:9px"><span style="color:${g.hex}">${g.sym}</span>
+        <span style="font-weight:700;font-size:14px">${g.label}</span></div>
+      <div style="font-size:12px;color:var(--dim);line-height:1.5;margin-top:5px">${
+        g.id==="study"?"Knowledge test, Smart Review, Blitz, missed log, and your five cert tracks with levels and practice exams."
+        :g.id==="cmds"?"Sandbox for six real device CLIs, task finder, command reference, timed command drills, and multi-step labs."
+        :g.id==="learn"?"Scenario Lab with diagrams, Explain It Back, and today's knowledge nugget."
+        :"Your stats, activity calendar, streaks, and exam history."}</div>
+    </button>`).join("");
+
+  const side=navSidebar(`<div class="panel">${osiLadder()}</div>
     <div class="panel" style="font-family:var(--mono);font-size:12px;color:var(--dim);display:grid;gap:7px">
       <div>Daily streak <span style="color:var(--red);float:right">🔥 ${liveStreak()} (best ${stats.daily.best})</span></div>
       <div>Scenarios <span style="color:var(--blue);float:right">${Object.keys(stats.scen).length}/${SCEN.length}</span></div>
       <div>Concepts <span style="color:var(--purple);float:right">${Object.keys(stats.expl).length}/${EXPLAIN.length}</span></div>
       <div>Commands <span style="color:var(--green);float:right">${cmdSolved}/${CMDS.length}</span></div>
-      <button onclick="go({screen:'stats'})" style="background:none;border:none;color:var(--cyan);font-family:var(--mono);font-size:11px;text-align:left;cursor:pointer;padding:2px 0;margin-top:2px">Full stats →</button>
-    </div>
-  `);
+      <div>Labs <span style="color:var(--red);float:right">${labsDone}/${LABS.length}</span></div>
+      <button onclick="go({screen:'stats'})" style="background:none;border:none;color:var(--cyan);font-family:var(--mono);font-size:11px;text-align:left;cursor:pointer;padding:2px 0">Full stats →</button>
+    </div>`);
 
-  /* track cards */
-  let tracks="";
-  for(const[k,t]of Object.entries(TRACKS)){
-    const p=stats.perTrack[k];
-    const acc=p.seen?Math.round(p.correct/p.seen*100):null;
-    const ex=stats.exams[k];
-    tracks+=`<div class="panel track span2" style="border-left:3px solid ${t.hex}">
-      <div class="row"><div><h3>${t.name}</h3><p>${t.desc}</p></div>
-        <span class="stat" style="color:${acc===null?'var(--dim)':acc>=80?'var(--cyan)':acc>=60?'var(--amber)':'var(--red)'}">
-        ${acc===null?"no data":acc+"% acc · "+p.seen+" answered"}</span></div>
-      ${ex?`<div class="stat" style="margin-top:6px;color:${ex.pass?'var(--cyan)':'var(--red)'}">Last exam: ${ex.score}% ${ex.pass?'PASS':'FAIL'} (need ${t.pass}%)</div>`:''}
-      ${stats.diag[k]?`<div class="stat" style="margin-top:4px;color:${stats.diag[k].ready?'var(--cyan)':LV[stats.diag[k].lv].c}">◈ knowledge test: ${stats.diag[k].ready?'exam-ready — all levels unlocked':'placed at '+LV[stats.diag[k].lv].n}</div>`:''}
-      <div class="acts">
-        <button class="btn" style="background:${t.hex};border-color:${t.hex};box-shadow:0 8px 22px -10px ${t.hex}88" onclick="go({screen:'levels',track:'${k}'})">Quiz</button>
-        <button class="btn ghost" style="border-color:${t.hex};color:${t.hex}" onclick="go({screen:'cards',track:'${k}'})">Flashcards</button>
-        <button class="btn ghost" style="border-color:${t.hex};color:${t.hex}" onclick="go({screen:'examIntro',track:'${k}'})">Practice Exam</button>
-      </div></div>`;
-  }
+  const main=`<div style="display:grid;gap:14px">
 
-  /* finished = answered the final question; only offer Resume before that */
-  const quizDone = quiz.deck && quiz.i >= quiz.deck.length-1 && quiz.picked !== null;
-  const inProgress = quiz.deck && quiz.i < quiz.deck.length && !quizDone;
-  const resumeCard = inProgress ? `
-    <div class="panel span2" style="border-left:3px solid var(--cyan);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-      <div><span class="eyebrow" style="color:var(--cyan)">▸ Continue where you left off</span>
-      <div style="font-size:14px;margin-top:5px">${quiz.smart?"Smart Review":TRACKS[quiz.track].name+(quiz.level?" · "+LV[quiz.level].n:"")} — question ${quiz.i+1} of ${quiz.deck.length}</div></div>
-      <button class="btn" style="background:var(--cyan);border-color:var(--cyan);box-shadow:0 8px 22px -10px #3FD6C688" onclick="resumeQuiz()">Resume</button>
-    </div>` : "";
-
-  const main=`<div class="main-grid">
-    ${resumeCard}
-    <div class="panel span2" style="border-left:3px solid ${mins>=goal?'var(--cyan)':'var(--amber)'}">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
-        <span class="eyebrow" style="color:${mins>=goal?'var(--cyan)':'var(--amber)'}">⏱ Study time today</span>
-        <span style="font-family:var(--mono);font-size:13px;color:var(--text)">${mins}m / ${goal}m ${mins>=goal?'· ✓ goal met':''}</span></div>
-      <div style="display:flex;gap:6px;margin-top:12px">${blockHtml}</div>
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:11px">
-        <span style="font-family:var(--mono);font-size:11px;color:${sMin>=30?'var(--cyan)':'var(--dim)'}">${sMin>=30?'▸ 30-min session done — good spot for a 5-min break':'session: '+Math.min(sMin,99)+'m / 30m'}</span>
-        <span style="font-family:var(--mono);font-size:10px;color:var(--dim)">goal:
-          ${[60,90,120].map(g=>`<button onclick="setGoal(${g})" style="background:${goal===g?'var(--amber)':'transparent'};color:${goal===g?'#0B1220':'var(--dim)'};border:1px solid ${goal===g?'var(--amber)':'var(--line)'};border-radius:6px;font-family:var(--mono);font-size:10px;padding:3px 8px;cursor:pointer;margin-left:3px">${g/60}h</button>`).join("")}
-        </span></div>
+    <div class="panel" style="border:1px solid rgba(255,179,71,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 0 50px -20px rgba(255,179,71,.45)">
+      <span class="eyebrow" style="color:var(--amber)">${me?"Welcome back, "+esc(me):"Welcome"}</span>
+      <h2 style="font-size:22px;font-weight:800;letter-spacing:-.3px;margin:7px 0 8px">Your training console for Network+, CCNA, Security+, CCNP and Palo Alto</h2>
+      <p style="font-size:13.5px;line-height:1.65;color:var(--dim);max-width:640px">
+        ${Q.length} leveled questions, ${SCEN.length} real-world scenarios with diagrams, ${CMDS.length+Object.values(SB).reduce((s,d)=>s+d.cmds.length,0)} commands across six platforms, and timed practice exams —
+        built around understanding the material well enough to explain it, not just recognise it.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+        ${inProgress?`<button class="btn" style="background:var(--cyan);border-color:var(--cyan);box-shadow:0 8px 22px -10px #3FD6C688" onclick="resumeQuiz()">Resume — ${quiz.smart?"Smart Review":TRACKS[quiz.track].name} q${quiz.i+1}/${quiz.deck.length}</button>`
+          :placed?`<button class="btn" onclick="go({screen:'smart'})">Continue studying</button>`
+          :`<button class="btn" onclick="go({screen:'diag'})">Start with the knowledge test</button>`}
+        ${weak?`<button class="btn ghost" style="border-color:var(--red);color:var(--red)" onclick="go({screen:'missed'})">${weak} weak items to fix</button>`:""}
+      </div>
     </div>
 
-    <div class="panel span2" style="border-left:3px solid ${TRACKS[nug.t].hex}">
-      <div class="eyebrow" style="color:${TRACKS[nug.t].hex}">☀ Knowledge of the day · ${TRACKS[nug.t].name}</div>
-      <div style="font-size:16px;font-weight:700;margin-top:8px">${esc(nug.k)}</div>
-      <div style="font-size:13.5px;line-height:1.6;color:var(--text);margin-top:6px">${esc(nug.v)}</div>
-      <div style="margin-top:12px">${claimed?`<span class="stat" style="color:var(--cyan)">✓ absorbed today</span>`:`<button class="btn ghost" style="border-color:${TRACKS[nug.t].hex};color:${TRACKS[nug.t].hex};font-size:11px;padding:8px 14px" onclick="kotdClaim()">Got it · +10 XP</button>`}</div>
+    <div class="main-grid">
+      <div class="panel" style="border-left:3px solid ${mins>=goal?'var(--cyan)':'var(--amber)'}">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+          <span class="eyebrow" style="color:${mins>=goal?'var(--cyan)':'var(--amber)'}">⏱ Study time today</span>
+          <span style="font-family:var(--mono);font-size:13px">${mins}m / ${goal}m ${mins>=goal?'· ✓':''}</span></div>
+        <div style="display:flex;gap:6px;margin-top:12px">${blockHtml}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:11px">
+          <span style="font-family:var(--mono);font-size:11px;color:${sMin>=30?'var(--cyan)':'var(--dim)'}">${sMin>=30?'▸ 30-min session done — take five':'session '+Math.min(sMin,99)+'m / 30m'}</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--dim)">goal:
+            ${[60,90,120].map(g=>`<button onclick="setGoal(${g})" style="background:${goal===g?'var(--amber)':'transparent'};color:${goal===g?'#0B1220':'var(--dim)'};border:1px solid ${goal===g?'var(--amber)':'var(--line)'};border-radius:6px;font-family:var(--mono);font-size:10px;padding:3px 8px;cursor:pointer;margin-left:3px">${g/60}h</button>`).join("")}
+          </span></div>
+      </div>
+
+      <div class="panel" style="border-left:3px solid ${TRACKS[nug.t].hex}">
+        <div class="eyebrow" style="color:${TRACKS[nug.t].hex}">☀ Knowledge of the day · ${TRACKS[nug.t].name}</div>
+        <div style="font-size:15px;font-weight:700;margin-top:8px">${esc(nug.k)}</div>
+        <div style="font-size:13px;line-height:1.6;color:var(--dim);margin-top:6px">${esc(nug.v)}</div>
+        <div style="margin-top:11px">${claimed?`<span class="stat" style="color:var(--cyan)">✓ absorbed today</span>`:`<button class="btn ghost" style="border-color:${TRACKS[nug.t].hex};color:${TRACKS[nug.t].hex};font-size:10px;padding:8px 13px" onclick="kotdClaim()">Got it · +10 XP</button>`}</div>
+      </div>
     </div>
 
-    <div class="panel feat span2" style="border:1px solid rgba(255,179,71,.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 0 40px -18px rgba(255,179,71,.5)">
-      <div class="fh">${chip("linear-gradient(135deg,#FFC167,#FF8E3C)","◈")}
-        <div><h3>Test your knowledge</h3>
-        <p>${Object.keys(stats.diag).length?'Re-map your knowledge — 25 questions across all certs. High scores unlock levels instantly.':'Start here: 25 questions map what you know, place you at the right level, and unlock it.'}</p></div></div>
-      <div><button class="btn" onclick="go({screen:'diag'})">${Object.keys(stats.diag).length?'Retest':'Test me'}</button></div>
-    </div>
+    <div style="margin-top:2px"><span class="eyebrow">How it works</span>
+      <p style="font-size:12.5px;color:var(--dim);margin-top:5px">Four stages. Most days you'll touch two or three of them.</p></div>
+    <div class="main-grid">${steps}</div>
 
-    <div class="panel feat">
-      <div class="fh">${chip("rgba(63,214,198,.16)","◎")}
-        <div><h3 style="color:var(--cyan)">Smart Review</h3>
-        <p>Adaptive drill from your misses${weakCount?` · <span style="color:var(--amber)">${weakCount} weak items queued</span>`:''}</p></div></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${featBtn("var(--cyan)","Start","go({screen:'smart'})")}
-        <button class="btn ghost" style="border-color:var(--red);color:var(--red);font-size:11px;padding:9px 14px" onclick="go({screen:'missed'})">Missed log</button></div>
-    </div>
-
-    <div class="panel feat">
-      <div class="fh">${chip("rgba(255,179,71,.16)","⚡")}
-        <div><h3 style="color:var(--amber)">Blitz mode</h3>
-        <p>60 seconds, all certs mixed. Best: <span style="color:var(--amber);font-family:var(--mono)">${stats.blitzBest}</span></p></div></div>
-      <div>${featBtn("var(--amber)","Launch","go({screen:'blitz'})")}</div>
-    </div>
-
-    <div class="panel feat">
-      <div class="fh">${chip("rgba(91,157,255,.16)","◫")}
-        <div><h3 style="color:var(--blue)">Scenario Lab</h3>
-        <p>Real-world cases with diagrams — the WHY behind exam questions · <span style="color:var(--text)">${Object.keys(stats.scen).length}/${SCEN.length}</span></p></div></div>
-      <div>${featBtn("var(--blue)","Open","go({screen:'scenList'})")}</div>
-    </div>
-
-    <div class="panel feat">
-      <div class="fh">${chip("rgba(176,140,255,.16)","⟲")}
-        <div><h3 style="color:var(--purple)">Explain it back</h3>
-        <p>Teach it out loud, compare to the model · <span style="color:var(--text)">${Object.keys(stats.expl).length}/${EXPLAIN.length} mastered</span></p></div></div>
-      <div>${featBtn("var(--purple)","Start","go({screen:'explain'})")}</div>
-    </div>
-
-    <div class="panel feat span2">
-      <div class="fh">${chip("rgba(123,216,143,.16)","⌨")}
-        <div><h3 style="color:var(--green)">Command Lab</h3>
-        <p>Type real commands against real scenarios — Cisco, Arista, Junos, Nokia, PAN-OS, Windows, Linux · <span style="color:var(--text)">${cmdSolved}/${CMDS.length} solved</span></p></div>
-        <button class="btn ghost" style="border-color:var(--green);color:var(--green);font-size:10px;padding:8px 12px;margin-left:auto" onclick="go({screen:'learn'})">⌘ Reference</button></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${Object.entries(GRP).map(([k,tt])=>`<button class="btn ghost" style="border-color:${tt.hex};color:${tt.hex};font-size:10px;padding:8px 12px" onclick="go({screen:'cmdlab',track:'${k}'})">${tt.short}</button>`).join("")}</div>
-    </div>
-
-    <div class="panel feat span2">
-      <div class="fh">${chip("rgba(123,216,143,.16)","⌘")}
-        <div><h3 style="color:var(--green)">Commands &amp; Labs</h3>
-        <p>Sandbox · Task finder · Reference · Command Lab · Practice Labs — six platforms in one place<br>
-        <span style="color:var(--text)">${cmdSolved}/${CMDS.length} commands solved · ${labsDone}/${LABS.length} labs complete</span></p></div>
-        <button class="btn" style="background:var(--green);border-color:var(--green);box-shadow:0 8px 22px -10px #7BD88F88;font-size:11px;padding:9px 16px;margin-left:auto" onclick="go({screen:'commands'})">Open</button></div>
-    </div>
-
-    <div class="span2" style="margin-top:6px"><span class="eyebrow">Certification tracks</span></div>
-    ${tracks}
+    <div style="margin-top:2px"><span class="eyebrow">Where everything lives</span>
+      <p style="font-size:12.5px;color:var(--dim);margin-top:5px">Use the bar at the top to move between sections — the left menu then shows that section's pages.</p></div>
+    <div class="main-grid">${map}</div>
   </div>`;
 
   app.innerHTML=header()+`<div class="home">${side}${main}</div>`;
@@ -3601,46 +3575,38 @@ function renderTasks(){
 
 /* ---------------- GROUPED NAVIGATION ---------------- */
 const NAV=[
- {id:"dash",label:"Dashboard",sym:"▦",bg:"rgba(255,179,71,.15)",screen:"home",screens:["home"]},
- {id:"study",label:"Study",sym:"◎",bg:"rgba(63,214,198,.15)",
-  screens:["diag","diagReport","smart","quiz","levels","gate","cards","blitz","missed","examIntro","exam","examReport"],
-  items:[["Test your knowledge","go({screen:'diag'})"],["Smart Review","go({screen:'smart'})"],
+ {id:"dash",label:"Dashboard",sym:"▦",hex:"#FFB347",screen:"home",screens:["home"],items:[]},
+ {id:"study",label:"Study",sym:"◎",hex:"#3FD6C6",screen:"studyHub",
+  screens:["studyHub","diag","diagReport","smart","quiz","levels","gate","cards","blitz","missed","examIntro","exam","examReport"],
+  items:[["Overview","go({screen:'studyHub'})"],["Test your knowledge","go({screen:'diag'})"],["Smart Review","go({screen:'smart'})"],
          ["Blitz mode","go({screen:'blitz'})"],["Missed log","go({screen:'missed'})"]]},
- {id:"cmds",label:"Commands",sym:"⌘",bg:"rgba(123,216,143,.15)",screen:"commands",
+ {id:"cmds",label:"Commands",sym:"⌘",hex:"#7BD88F",screen:"commands",
   screens:["commands","sandbox","tasks","learn","cmdlab","lab"],
-  items:[["Sandbox","go({screen:'sandbox'})"],["Task finder","go({screen:'tasks'})"],
-         ["Reference","go({screen:'learn'})"],["Command Lab","go({screen:'commands'})"],
-         ["Practice Labs","go({screen:'commands'})"]]},
- {id:"learn",label:"Learn",sym:"◫",bg:"rgba(91,157,255,.15)",
-  screens:["scenList","scen","explain"],
-  items:[["Scenario Lab","go({screen:'scenList'})"],["Explain it back","go({screen:'explain'})"]]},
- {id:"prog",label:"Progress",sym:"▤",bg:"rgba(176,140,255,.15)",screens:["stats"],
+  items:[["Overview","go({screen:'commands'})"],["Sandbox","go({screen:'sandbox'})"],["Task finder","go({screen:'tasks'})"],
+         ["Reference","go({screen:'learn'})"]]},
+ {id:"learn",label:"Learn",sym:"◫",hex:"#5B9DFF",screen:"learnHub",
+  screens:["learnHub","scenList","scen","explain"],
+  items:[["Overview","go({screen:'learnHub'})"],["Scenario Lab","go({screen:'scenList'})"],["Explain it back","go({screen:'explain'})"]]},
+ {id:"prog",label:"Progress",sym:"▤",hex:"#B08CFF",screen:"stats",screens:["stats"],
   items:[["My stats","go({screen:'stats'})"]]},
 ];
-let navOpen=null;
-window.navToggle=function(id){
-  const g=NAV.find(x=>x.id===id);
-  if(g&&!g.items){go({screen:g.screen});return;}
-  navOpen=(navOpen===id?null:id);render();
-};
+function activeGroup(){return NAV.find(g=>g.screens.includes(S.screen||"home"))||NAV[0];}
+window.navGo=function(id){const g=NAV.find(x=>x.id===id);if(g)go({screen:g.screen});};
+/* top bar: the five sections, always visible */
+function topNav(){
+  const cur=activeGroup().id;
+  return `<nav class="topnav">${NAV.map(g=>`<button class="topbtn${g.id===cur?' on':''}" style="${g.id===cur?`color:${g.hex};border-color:${g.hex}`:''}" onclick="navGo('${g.id}')"><span style="opacity:.85">${g.sym}</span> ${g.label}</button>`).join("")}</nav>`;
+}
+/* sidebar: sub-pages of whichever section you're in */
 function navSidebar(extra){
-  const cur=S.screen||"home";
-  const activeGroup=(NAV.find(g=>g.screens.includes(cur))||{}).id;
-  if(navOpen===null)navOpen=activeGroup;
-  let out="";
-  NAV.forEach(g=>{
-    const on=g.id===activeGroup, open=navOpen===g.id&&g.items;
-    out+=`<button class="navlink${on?' on':''}" onclick="navToggle('${g.id}')">
-      <span class="ic" style="background:${g.bg}">${g.sym}</span>${g.label}
-      ${g.items?`<span style="margin-left:auto;color:var(--dim);font-size:10px;transition:transform .15s;display:inline-block;transform:rotate(${open?90:0}deg)">›</span>`:''}
-    </button>`;
-    if(open){
-      out+=`<div style="display:grid;gap:1px;margin:1px 0 4px 0;padding-left:37px;border-left:1px solid var(--line);margin-left:13px">
-        ${g.items.map(([l,act])=>`<button onclick="${act}" style="text-align:left;background:none;border:none;cursor:pointer;color:var(--dim);font-family:var(--sans);font-size:12.5px;padding:7px 10px;border-radius:8px" onmouseover="this.style.color='var(--text)';this.style.background='var(--panel2)'" onmouseout="this.style.color='var(--dim)';this.style.background='none'">${l}</button>`).join("")}
-      </div>`;
-    }
-  });
-  return `<aside class="side"><nav class="panel" style="padding:10px;display:grid;gap:2px">${out}</nav>${extra||""}</aside>`;
+  const g=activeGroup(), cur=S.screen||"home";
+  const items=g.items&&g.items.length?`<nav class="panel" style="padding:9px;display:grid;gap:1px">
+      <div class="eyebrow" style="padding:6px 10px 8px;color:${g.hex}">${g.sym} ${esc(g.label)}</div>
+      ${g.items.map(([l,act])=>{
+        const m=act.match(/screen:'(\w+)'/), on=m&&m[1]===cur;
+        return `<button class="navlink${on?' on':''}" style="font-size:13px;padding:9px 12px" onclick="${act}">${l}</button>`;}).join("")}
+    </nav>`:"";
+  return `<aside class="side">${items}${extra||""}</aside>`;
 }
 
 /* ---------------- COMMANDS HUB ---------------- */
@@ -3680,6 +3646,76 @@ function renderCommands(){
     </div></div>`;
 }
 
+/* ---------------- SHARED HUB CARD ---------------- */
+function hubCard(sym,color,title,desc,body){
+  return `<div class="panel" style="border-left:3px solid ${color}">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="chip" style="background:${color}22">${sym}</div>
+      <div><h3 style="font-size:15.5px;font-weight:700;color:${color}">${title}</h3>
+      <p style="font-size:12.5px;color:var(--dim);line-height:1.5;margin-top:2px">${desc}</p></div></div>
+    ${body?`<div style="margin-top:13px">${body}</div>`:""}</div>`;
+}
+function hubShell(eyebrow,color,title,intro,body){
+  return header()+`<div class="home">${navSidebar()}<div style="display:grid;gap:13px">
+    <div><span class="eyebrow" style="color:${color}">${eyebrow}</span>
+      <h2 class="screen-title" style="margin:4px 0 4px">${title}</h2>
+      <p style="font-size:13px;color:var(--dim);line-height:1.6">${intro}</p></div>
+    ${body}
+    <div class="nav"><button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="go({screen:'home'})">← Dashboard</button></div>
+  </div></div>`;
+}
+
+/* ---------------- STUDY HUB ---------------- */
+function renderStudyHub(){
+  const weak=Q.filter(q=>{const s=qstats[qid(q)];return s&&s.miss>0&&s.streak<2;}).length;
+  const placed=Object.keys(stats.diag).length;
+  let tracks="";
+  for(const[k,t]of Object.entries(TRACKS)){
+    const p=stats.perTrack[k], acc=p.seen?Math.round(p.correct/p.seen*100):null;
+    const lvs=trackLevels(k), passed=lvs.filter(l=>levelPassed(k,l)).length;
+    tracks+=`<button class="panel" style="text-align:left;cursor:pointer;padding:13px 15px;border-left:3px solid ${t.hex};color:var(--text);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap" onclick="go({screen:'levels',track:'${k}'})">
+      <div><div style="font-size:14.5px;font-weight:700">${t.name}</div>
+      <div class="stat" style="color:var(--dim);margin-top:3px">${acc===null?"not started":acc+"% accuracy · "+p.seen+" answered"} · ${passed}/${lvs.length} levels passed</div></div>
+      <span class="stat" style="color:${t.hex}">Levels →</span></button>`;
+  }
+  app.innerHTML=hubShell("Study","#3FD6C6","Practice until it's automatic",
+    "Four ways to drill, plus your five certification tracks. Start with the knowledge test if you haven't — it places you at the right level so you're not grinding material you already know.",
+    hubCard("◈","#FFB347","Test your knowledge",
+      placed?"Re-map where you stand — 25 questions across all certs":"25 questions across all certs. Maps what you know, places you at the right level, and unlocks it.",
+      `<button class="btn" style="font-size:11px;padding:9px 16px" onclick="go({screen:'diag'})">${placed?"Retest":"Start"}</button>`)+
+    `<div class="main-grid">
+      ${hubCard("◎","#3FD6C6","Smart Review",`Adaptive drill built from your misses${weak?` · <span style="color:var(--amber)">${weak} weak items queued</span>`:""}`,
+        `<button class="btn" style="background:var(--cyan);border-color:var(--cyan);font-size:11px;padding:9px 16px" onclick="go({screen:'smart'})">Start</button>`)}
+      ${hubCard("⚡","#FFB347","Blitz mode",`60 seconds, all certs mixed · best ${stats.blitzBest}`,
+        `<button class="btn" style="font-size:11px;padding:9px 16px" onclick="go({screen:'blitz'})">Launch</button>`)}
+      ${hubCard("✕","#F4634E","Missed log","Every question you've gotten wrong, with the fix",
+        `<button class="btn" style="background:var(--red);border-color:var(--red);font-size:11px;padding:9px 16px" onclick="go({screen:'missed'})">Open</button>`)}
+      ${hubCard("▤","#B08CFF","Practice exams","Timed, weighted, with a real pass line and domain breakdown",
+        Object.entries(TRACKS).map(([k,t])=>`<button class="btn ghost" style="border-color:${t.hex};color:${t.hex};font-size:10px;padding:8px 12px" onclick="go({screen:'examIntro',track:'${k}'})">${t.short}</button>`).join(""))}
+    </div>
+    <div style="margin-top:4px"><span class="eyebrow">Certification tracks</span></div>
+    <div class="grid">${tracks}</div>`);
+}
+
+/* ---------------- LEARN HUB ---------------- */
+function renderLearnHub(){
+  const kotdIdx=Math.floor(Date.now()/864e5)%KOTD.length, nug=KOTD[kotdIdx];
+  const claimed=stats.kotd.date===dstr(new Date());
+  app.innerHTML=hubShell("Learn","#5B9DFF","Understand it, don't memorise it",
+    "The exam rewards recognising a situation, not reciting a fact. These two modes build that — first by seeing concepts play out in real incidents, then by explaining them back in your own words.",
+    hubCard("◫","#5B9DFF","Scenario Lab",
+      `Real-world cases with diagrams — the WHY behind exam questions · <span style="color:var(--text)">${Object.keys(stats.scen).length}/${SCEN.length} complete</span>`,
+      `<button class="btn" style="background:var(--blue);border-color:var(--blue);font-size:11px;padding:9px 16px" onclick="go({screen:'scenList'})">Open scenarios</button>`)+
+    hubCard("⟲","#B08CFF","Explain it back",
+      `Teach the concept out loud, then compare to the model answer — the strongest recall there is · <span style="color:var(--text)">${Object.keys(stats.expl).length}/${EXPLAIN.length} mastered</span>`,
+      `<button class="btn" style="background:var(--purple);border-color:var(--purple);font-size:11px;padding:9px 16px" onclick="go({screen:'explain'})">Start</button>`)+
+    `<div class="panel" style="border-left:3px solid ${TRACKS[nug.t].hex}">
+      <div class="eyebrow" style="color:${TRACKS[nug.t].hex}">☀ Knowledge of the day · ${TRACKS[nug.t].name}</div>
+      <div style="font-size:16px;font-weight:700;margin-top:8px">${esc(nug.k)}</div>
+      <div style="font-size:13.5px;line-height:1.6;margin-top:6px">${esc(nug.v)}</div>
+      <div style="margin-top:12px">${claimed?`<span class="stat" style="color:var(--cyan)">✓ absorbed today</span>`:`<button class="btn ghost" style="border-color:${TRACKS[nug.t].hex};color:${TRACKS[nug.t].hex};font-size:11px;padding:8px 14px" onclick="kotdClaim()">Got it · +10 XP</button>`}</div></div>`);
+}
+
 /* ---------------- ROUTER ---------------- */
 /* Wrap whatever a screen rendered into the persistent sidebar layout,
    so the nav is always present and only the centre pane changes. */
@@ -3705,6 +3741,8 @@ function render(){
     case"sandbox":renderSandbox();break;
     case"tasks":renderTasks();break;
     case"commands":renderCommands();break;
+    case"studyHub":renderStudyHub();break;
+    case"learnHub":renderLearnHub();break;
     case"cmdlab":if(cl.track!==S.track||!cl.deck||S.fresh){startCmd(S.track);S.fresh=false;}renderCmd();break;
     case"lab":if(!lb.lab||lb.lab.id!==S.id||lb.done&&S.fresh||S.fresh){startLab(S.id);S.fresh=false;}renderLab();break;
     case"quiz":if(quiz.track!==S.track||quiz.level!==S.level||quiz.smart||!quiz.deck||S.fresh){startQuiz(S.track,false,S.level);S.fresh=false;}renderQuiz();break;
