@@ -914,10 +914,24 @@ const KOTD=[
 ];
 
 let stats, qstats, S={screen:"home"};
-function defStats(){return{xp:0,bestStreak:0,blitzBest:0,perTrack:Object.fromEntries(Object.keys(TRACKS).map(k=>[k,{seen:0,correct:0}])),exams:{},daily:{last:null,streak:0,best:0},scen:{},expl:{},diag:{},cmd:{},kotd:{date:null},gate:{},labs:{},time:{date:null,ms:0,goal:90}};}
+
+/* ============================ PROFILES ============================ */
+let profiles=[], currentPid=null, lg={mode:"list",pinFor:null,err:"",nm:"",pin:""};
+const AVCOLORS=["#FFB347","#3FD6C6","#5B9DFF","#B08CFF","#7BD88F","#F4634E"];
+function hpin(s){let x=5381;for(const c of s)x=((x<<5)+x+c.charCodeAt(0))>>>0;return x.toString(36);}
+function loadProfiles(){
+  try{profiles=JSON.parse(store.get("cc-profiles")||"[]");}catch(e){profiles=[];}
+  currentPid=store.get("cc-current")||null;
+  if(currentPid&&!profiles.find(p=>p.id===currentPid))currentPid=null;
+}
+function saveProfiles(){store.set("cc-profiles",JSON.stringify(profiles));store.set("cc-current",currentPid||"");}
+function pkey(k){return "cc:"+currentPid+":"+k;}
+function initials(n){return n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();}
+function defStats(){return{xp:0,bestStreak:0,blitzBest:0,perTrack:Object.fromEntries(Object.keys(TRACKS).map(k=>[k,{seen:0,correct:0}])),exams:{},daily:{last:null,streak:0,best:0},scen:{},expl:{},diag:{},cmd:{},kotd:{date:null},gate:{},labs:{},time:{date:null,ms:0,goal:90},days:{}};}
 function load(){
-  try{stats={...defStats(),...JSON.parse(store.get("cc-stats")||"{}")};}catch(e){stats=defStats();}
-  try{qstats=JSON.parse(store.get("cc-qstats")||"{}");}catch(e){qstats={};}
+  try{stats={...defStats(),...JSON.parse(store.get(pkey("stats"))||"{}")};}catch(e){stats=defStats();}
+  try{qstats=JSON.parse(store.get(pkey("qstats"))||"{}");}catch(e){qstats={};}
+  if(!stats.days)stats.days={};
   if(!stats.exams)stats.exams={};
   if(!stats.daily)stats.daily={last:null,streak:0,best:0};
   if(!stats.scen)stats.scen={};
@@ -940,7 +954,11 @@ function touchTime(){
   if(d>300000){sessionStart=now;}            /* >5 min idle = new session */
   else if(d>0&&d<180000){stats.time.ms+=d;}  /* count active gaps under 3 min */
   lastActive=now;
+  stats.days=stats.days||{};
+  const dd=stats.days[today]=stats.days[today]||{m:0,a:0};
+  dd.m=Math.max(dd.m,Math.floor(stats.time.ms/60000));
 }
+function bumpA(){const t=dstr(new Date());stats.days=stats.days||{};const dd=stats.days[t]=stats.days[t]||{m:0,a:0};dd.a++;}
 function todayMins(){const t=dstr(new Date());return stats.time.date===t?Math.floor(stats.time.ms/60000):0;}
 function sessionMins(){return Math.floor((Date.now()-sessionStart)/60000);}
 window.setGoal=function(m){touchTime();stats.time.goal=m;save();render();};
@@ -965,7 +983,7 @@ function levelUnlocked(track,l){
   if(d&&(d.ready||l<=d.lv))return true;
   return levelPassed(track,lvs[i-1]);
 }
-function save(){store.set("cc-stats",JSON.stringify(stats));store.set("cc-qstats",JSON.stringify(qstats));}
+function save(){if(!currentPid)return;store.set(pkey("stats"),JSON.stringify(stats));store.set(pkey("qstats"),JSON.stringify(qstats));}
 function qid(q){return q.t+":"+q.q.slice(0,40);}
 function dstr(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function touchStreak(){
@@ -987,7 +1005,7 @@ function recordAnswer(q,correct){
   s.seen++; if(correct){s.streak++;}else{s.miss++;s.streak=0;}
   qstats[id]=s;
   stats.perTrack[q.t].seen++; if(correct)stats.perTrack[q.t].correct++;
-  touchStreak();
+  touchStreak();bumpA();
   save();
 }
 function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
@@ -1016,7 +1034,10 @@ function header(){
       <h1>CERT<span>://</span>COMMAND</h1>
       <small>certification training console</small>
     </button>
-    <div class="hdr-xp">${liveStreak()>0?`<span style="color:var(--red)">🔥${liveStreak()}d</span> · `:''}<span style="color:${todayMins()>=stats.time.goal?'var(--cyan)':'var(--dim)'}">⏱${todayMins()}m</span> · ${stats.xp} XP · L${layerOf(stats.xp)}</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="hdr-xp">${liveStreak()>0?`<span style="color:var(--red)">🔥${liveStreak()}d</span> · `:''}<span style="color:${todayMins()>=stats.time.goal?'var(--cyan)':'var(--dim)'}">⏱${todayMins()}m</span> · ${stats.xp} XP · L${layerOf(stats.xp)}</div>
+      ${(()=>{const p=profiles.find(x=>x.id===currentPid);return p?`<button onclick="go({screen:'stats'})" title="${esc(p.name)} — my stats" style="width:36px;height:36px;border-radius:50%;background:${p.color};color:#0B1220;border:none;cursor:pointer;font-weight:800;font-family:var(--mono);font-size:13px">${esc(initials(p.name))}</button>`:"";})()}
+    </div>
   </header>`;
 }
 
@@ -1067,6 +1088,7 @@ function renderHome(){
       ${navItem("⟲","rgba(176,140,255,.15)","Explain it back","go({screen:'explain'})")}
       ${navItem("⚡","rgba(255,179,71,.15)","Blitz mode","go({screen:'blitz'})")}
       ${navItem("✕","rgba(244,99,78,.15)","Missed log","go({screen:'missed'})")}
+      ${navItem("▤","rgba(63,214,198,.15)","My stats","go({screen:'stats'})")}
     </nav>
     <div class="panel">${osiLadder()}</div>
     <div class="panel" style="font-family:var(--mono);font-size:12px;color:var(--dim);display:grid;gap:7px">
@@ -1467,7 +1489,7 @@ window.cmdRun=function(){
   if(c.ac.some(rx=>rx.test(raw.toLowerCase()))){
     cl.state="ok";
     if(!stats.cmd[c.id]){stats.cmd[c.id]=true;stats.xp+=20;}
-    touchStreak();save();
+    touchStreak();bumpA();save();
   }else{
     cl.tries++;cl.state="bad";
   }
@@ -1860,7 +1882,7 @@ function renderExplain(){
 window.explReveal=function(){touchTime();save();epx.revealed=true;render();};
 window.explGrade=function(g){
   const e=epx.deck[epx.i];
-  touchStreak();
+  touchStreak();bumpA();
   if(g===2){stats.xp+=15;stats.expl[e.id]=true;}
   else{delete stats.expl[e.id];epx.deck.push(e);}
   if(g===1)stats.xp+=5;
@@ -1960,7 +1982,7 @@ window.labRun=function(){
   if(st.ac.some(rx=>rx.test(raw.toLowerCase()))){
     lb.transcript.push({ps:st.ps,cmd:raw,out:st.out});
     lb.step++;lb.state="ready";lb.tries=0;
-    touchStreak();
+    touchStreak();bumpA();
     if(lb.step>=lb.lab.steps.length){
       lb.done=true;
       lb.first=!stats.labs[lb.lab.id];
@@ -1972,14 +1994,185 @@ window.labRun=function(){
 };
 window.labReveal=function(){touchTime();lb.state="revealed";save();render();};
 
+/* ---------------- SIGN IN / PROFILES ---------------- */
+function renderLogin(){
+  let list="";
+  profiles.forEach(p=>{
+    const pinOpen=lg.pinFor===p.id;
+    list+=`<div class="panel" style="padding:12px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <button onclick="loginSelect('${p.id}')" style="display:flex;align-items:center;gap:12px;background:none;border:none;cursor:pointer;color:var(--text);flex:1;text-align:left;min-width:160px">
+        <span style="width:42px;height:42px;border-radius:50%;background:${p.color};color:#0B1220;display:flex;align-items:center;justify-content:center;font-weight:800;font-family:var(--mono);font-size:15px">${esc(initials(p.name))}</span>
+        <span><span style="font-weight:700;font-size:15px">${esc(p.name)}</span><br>
+        <span class="stat" style="color:var(--dim)">${p.pin?"🔒 PIN protected":"tap to continue"}</span></span>
+      </button>
+      ${pinOpen?`<span style="display:flex;gap:8px;align-items:center">
+        <input id="pin-in" type="password" inputmode="numeric" maxlength="6" placeholder="PIN" onkeydown="if(event.key==='Enter')loginPin('${p.id}')"
+          style="width:90px;background:var(--panel2);border:1px solid ${lg.err?'var(--red)':'var(--line)'};border-radius:9px;color:var(--text);font-family:var(--mono);font-size:14px;padding:9px 11px;outline:none">
+        <button class="btn" style="font-size:11px;padding:9px 14px" onclick="loginPin('${p.id}')">Enter</button></span>`:''}
+    </div>`;
+  });
+  const create=lg.mode==="create"?`
+    <div class="panel" style="display:grid;gap:12px">
+      <span class="eyebrow" style="color:var(--amber)">Create your free profile</span>
+      <input id="nm-in" value="${esc(lg.nm)}" placeholder="Your name" maxlength="24" onkeydown="if(event.key==='Enter')loginCreate()"
+        style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:15px;padding:12px 14px;outline:none;font-family:var(--sans)">
+      <input id="npin-in" type="password" inputmode="numeric" maxlength="6" placeholder="Optional PIN (keeps others out of your stats)" onkeydown="if(event.key==='Enter')loginCreate()"
+        style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:14px;padding:12px 14px;outline:none;font-family:var(--mono)">
+      ${lg.err?`<span class="stat" style="color:var(--red)">${esc(lg.err)}</span>`:''}
+      <div style="display:flex;gap:10px"><button class="btn" onclick="loginCreate()">Create profile</button>
+      ${profiles.length?`<button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="lgMode('list')">Back</button>`:''}</div>
+    </div>`:"";
+  app.innerHTML=`<div style="max-width:460px;margin:8vh auto 0;display:grid;gap:16px">
+    <div class="center" style="margin-bottom:6px">
+      <div style="font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:1px">CERT<span style="color:var(--amber)">://</span>COMMAND</div>
+      <div class="eyebrow" style="margin-top:4px">certification training console</div>
+    </div>
+    ${profiles.length&&lg.mode==="list"?`<span class="eyebrow">Who's studying?</span>`:""}
+    ${lg.mode==="list"?list:""}
+    ${lg.mode==="list"?`<button class="btn ghost" style="border-color:var(--amber);color:var(--amber)" onclick="lgMode('create')">＋ ${profiles.length?"Add another profile":"Create your free profile"}</button>`:""}
+    ${create}
+    <div class="stat center" style="color:var(--dim);line-height:1.6">Free forever · profiles and progress are stored privately on this device.<br>Each person gets their own XP, streaks, exams, and calendar.</div>
+  </div>`;
+  const f=document.getElementById(lg.mode==="create"?"nm-in":"pin-in");if(f&&f.focus)try{f.focus();}catch(e){}
+}
+window.lgMode=function(m){lg={mode:m,pinFor:null,err:"",nm:"",pin:""};render();};
+window.loginSelect=function(id){
+  const p=profiles.find(x=>x.id===id);if(!p)return;
+  if(p.pin){lg.pinFor=(lg.pinFor===id?null:id);lg.err="";render();return;}
+  enterProfile(id);
+};
+window.loginPin=function(id){
+  const p=profiles.find(x=>x.id===id);
+  const v=(document.getElementById("pin-in")||{}).value||"";
+  if(hpin(v)===p.pin)enterProfile(id);
+  else{lg.err="wrong";render();}
+};
+window.loginCreate=function(){
+  const nm=((document.getElementById("nm-in")||{}).value||"").trim();
+  const pin=((document.getElementById("npin-in")||{}).value||"").trim();
+  lg.nm=nm;
+  if(nm.length<2){lg.err="Name needs at least 2 characters.";render();return;}
+  if(profiles.some(p=>p.name.toLowerCase()===nm.toLowerCase())){lg.err="That name is taken on this device.";render();return;}
+  const id="p"+Date.now().toString(36);
+  const p={id,name:nm,color:AVCOLORS[profiles.length%AVCOLORS.length],pin:pin?hpin(pin):null,created:Date.now()};
+  const firstEver=profiles.length===0;
+  profiles.push(p);currentPid=id;saveProfiles();
+  /* migrate pre-profile progress into the first profile so nothing is lost */
+  if(firstEver&&store.get("cc-stats")){
+    store.set(pkey("stats"),store.get("cc-stats"));
+    if(store.get("cc-qstats"))store.set(pkey("qstats"),store.get("cc-qstats"));
+  }
+  load();lastActive=Date.now();sessionStart=Date.now();
+  go({screen:"home"});
+};
+function enterProfile(id){currentPid=id;saveProfiles();load();lg={mode:"list",pinFor:null,err:"",nm:"",pin:""};lastActive=Date.now();sessionStart=Date.now();go({screen:"home"});}
+window.switchProfile=function(){save();currentPid=null;saveProfiles();lg={mode:"list",pinFor:null,err:"",nm:"",pin:""};render();window.scrollTo(0,0);};
+
+/* ---------------- STATS PAGE + ACTIVITY CALENDAR ---------------- */
+let stM=0;
+window.calNav=function(d){stM+=d;render();};
+function calHtml(){
+  const now=new Date();
+  const view=new Date(now.getFullYear(),now.getMonth()+stM,1);
+  const yr=view.getFullYear(),mo=view.getMonth();
+  const monthName=view.toLocaleString('default',{month:'long'});
+  const firstDow=new Date(yr,mo,1).getDay();
+  const daysIn=new Date(yr,mo+1,0).getDate();
+  const today=dstr(now);
+  let cells="";
+  "SMTWTFS".split("").forEach(d=>{cells+=`<div style="font-family:var(--mono);font-size:9.5px;color:var(--dim);text-align:center">${d}</div>`;});
+  for(let i=0;i<firstDow;i++)cells+="<div></div>";
+  for(let d=1;d<=daysIn;d++){
+    const key=yr+"-"+String(mo+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+    const rec=stats.days[key];
+    const m=rec?rec.m:0, a=rec?rec.a:0;
+    let bg="var(--panel2)",bd="var(--line)";
+    if(m>=stats.time.goal){bg="rgba(63,214,198,.55)";bd="var(--cyan)";}
+    else if(m>=30){bg="rgba(255,179,71,.5)";bd="var(--amber)";}
+    else if(m>=10){bg="rgba(255,179,71,.25)";bd="rgba(255,179,71,.4)";}
+    else if(m>0||a>0){bg="rgba(255,179,71,.12)";bd="var(--line)";}
+    const isToday=key===today;
+    cells+=`<div title="${key}: ${m}m · ${a} answered" style="aspect-ratio:1;border-radius:7px;background:${bg};border:1px solid ${isToday?'var(--text)':bd};display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:${m>=30?'#0B1220':'var(--dim)'}">${d}</div>`;
+  }
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <button class="btn ghost" style="border-color:var(--line);color:var(--dim);padding:5px 12px;font-size:12px" onclick="calNav(-1)">‹</button>
+    <span style="font-weight:700;font-size:14px">${monthName} ${yr}</span>
+    <button class="btn ghost" style="border-color:var(--line);color:var(--dim);padding:5px 12px;font-size:12px" ${stM>=0?'disabled':''} onclick="calNav(1)">›</button></div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px">${cells}</div>
+    <div style="display:flex;gap:12px;margin-top:12px;font-family:var(--mono);font-size:9.5px;color:var(--dim);flex-wrap:wrap">
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(255,179,71,.25);vertical-align:middle"></span> studied</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(255,179,71,.5);vertical-align:middle"></span> 30m+ session</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(63,214,198,.55);vertical-align:middle"></span> goal met</span></div>`;
+}
+function renderStats(){
+  const p=profiles.find(x=>x.id===currentPid)||{name:"?",color:"var(--amber)",created:Date.now()};
+  const totalMin=Object.values(stats.days).reduce((s,d)=>s+(d.m||0),0);
+  const totalAns=Object.values(stats.perTrack).reduce((s,t)=>s+t.seen,0);
+  const totalCor=Object.values(stats.perTrack).reduce((s,t)=>s+t.correct,0);
+  const acc=totalAns?Math.round(totalCor/totalAns*100):0;
+  const activeDays=Object.values(stats.days).filter(d=>(d.m||0)>0||(d.a||0)>0).length;
+  const since=new Date(p.created).toLocaleDateString();
+  const tile=(label,val,color)=>`<div class="panel" style="padding:14px 16px"><div class="eyebrow">${label}</div>
+    <div style="font-family:var(--mono);font-size:24px;font-weight:700;color:${color};margin-top:6px">${val}</div></div>`;
+  let trackBars="";
+  for(const[k,t]of Object.entries(TRACKS)){
+    const pt=stats.perTrack[k];const a=pt.seen?Math.round(pt.correct/pt.seen*100):0;
+    const lvs=trackLevels(k), passed=lvs.filter(l=>levelPassed(k,l)).length;
+    trackBars+=`<div class="report-dom"><span style="min-width:86px;color:${t.hex};font-family:var(--mono);font-size:11px">${t.short}</span>
+      <div class="bar"><div style="width:${a}%;background:${t.hex}"></div></div>
+      <span class="stat" style="min-width:150px;text-align:right;color:var(--dim)">${a}% · ${pt.seen} answered · ${passed}/${lvs.length} lvls passed</span></div>`;
+  }
+  let examRows="";
+  for(const[k,e]of Object.entries(stats.exams)){
+    examRows+=`<div style="display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid var(--line)">
+      <span style="color:${TRACKS[k].hex};font-family:var(--mono)">${TRACKS[k].name}</span>
+      <span style="color:${e.pass?'var(--cyan)':'var(--red)'};font-family:var(--mono)">${e.score}% ${e.pass?'PASS':'FAIL'} · ${new Date(e.date).toLocaleDateString()}</span></div>`;
+  }
+  app.innerHTML=header()+`<div style="max-width:860px;margin:0 auto;display:grid;gap:14px">
+    <div class="panel" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <span style="width:56px;height:56px;border-radius:50%;background:${p.color};color:#0B1220;display:flex;align-items:center;justify-content:center;font-weight:800;font-family:var(--mono);font-size:20px">${esc(initials(p.name))}</span>
+      <div style="flex:1;min-width:150px"><div style="font-size:20px;font-weight:800">${esc(p.name)}</div>
+        <div class="stat" style="color:var(--dim)">studying since ${since} · ${activeDays} active days</div></div>
+      <button class="btn ghost" style="border-color:var(--dim);color:var(--dim);font-size:11px;padding:9px 14px" onclick="switchProfile()">Switch profile</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">
+      ${tile("Total XP",stats.xp,"var(--amber)")}
+      ${tile("Rank","L"+layerOf(stats.xp)+" "+OSI[Math.min(6,layerOf(stats.xp)-1)],"var(--amber)")}
+      ${tile("Daily streak","🔥 "+liveStreak()+" (best "+stats.daily.best+")","var(--red)")}
+      ${tile("Study time",Math.floor(totalMin/60)+"h "+totalMin%60+"m","var(--cyan)")}
+      ${tile("Answered",totalAns+" · "+acc+"%","var(--blue)")}
+      ${tile("Blitz best",stats.blitzBest,"var(--amber)")}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="stats-2col">
+      <div class="panel"><span class="eyebrow" style="display:block;margin-bottom:4px">Activity calendar</span>${calHtml()}</div>
+      <div style="display:grid;gap:14px;align-content:start">
+        <div class="panel"><span class="eyebrow" style="display:block;margin-bottom:12px">Accuracy by cert</span>
+          <div class="grid" style="gap:9px">${trackBars}</div></div>
+        <div class="panel"><span class="eyebrow" style="display:block;margin-bottom:8px">Exam history</span>
+          ${examRows||'<div class="stat" style="color:var(--dim)">No practice exams yet — your results will collect here.</div>'}</div>
+        <div class="panel" style="font-family:var(--mono);font-size:12px;color:var(--dim);display:grid;gap:7px">
+          <div>Scenarios <span style="color:var(--blue);float:right">${Object.keys(stats.scen).length}/${SCEN.length}</span></div>
+          <div>Concepts mastered <span style="color:var(--purple);float:right">${Object.keys(stats.expl).length}/${EXPLAIN.length}</span></div>
+          <div>Commands solved <span style="color:var(--green);float:right">${CMDS.filter(c=>stats.cmd[c.id]===true).length}/${CMDS.length}</span></div>
+          <div>Labs complete <span style="color:var(--red);float:right">${LABS.filter(l=>stats.labs[l.id]).length}/${LABS.length}</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="nav"><button class="btn ghost" style="border-color:var(--dim);color:var(--dim)" onclick="go({screen:'home'})">← Dashboard</button></div>
+  </div>
+  <style>@media(max-width:820px){.stats-2col{grid-template-columns:1fr !important}}</style>`;
+}
+
 /* ---------------- ROUTER ---------------- */
 function render(){
+  if(!currentPid){renderLogin();return;}
   switch(S.screen){
     case"home":clearInterval(bzTimer);clearInterval(exTimer);renderHome();break;
     case"levels":renderLevels();break;
     case"diag":if(!dg.deck||dg.report||dg.track!==(S.track||null)||S.fresh){startDiag(S.track);S.fresh=false;}renderDiag();break;
     case"diagReport":renderDiagReport();break;
     case"gate":if(gt.track!==S.track||gt.level!==S.level||gt.report||S.fresh){startGate(S.track,S.level);S.fresh=false;}renderGate();break;
+    case"stats":renderStats();break;
     case"cmdlab":if(cl.track!==S.track||!cl.deck||S.fresh){startCmd(S.track);S.fresh=false;}renderCmd();break;
     case"lab":if(!lb.lab||lb.lab.id!==S.id||lb.done&&S.fresh||S.fresh){startLab(S.id);S.fresh=false;}renderLab();break;
     case"quiz":if(quiz.track!==S.track||quiz.level!==S.level||quiz.smart||!quiz.deck||S.fresh){startQuiz(S.track,false,S.level);S.fresh=false;}renderQuiz();break;
@@ -1999,7 +2192,9 @@ function render(){
 const _go=go;
 window.go=function(v){v.fresh=true;_go(v);};
 
-load();render();
+loadProfiles();
+if(currentPid)load();
+render();
 </script>
 </body>
 </html>
